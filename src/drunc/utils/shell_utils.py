@@ -279,7 +279,7 @@ class ShellContext:
         log = get_logger("utils.ShellContext")
         if name in self._drivers:
             del self._drivers[name]
-            log.info(f"Driver "{name}" has been deleted.")
+            log.info(f"Driver '{name}' has been deleted.")
     
     def get_token(self) -> Token:
         return self._token
