@@ -426,9 +426,8 @@ def get_control_type_and_uri_from_cli(CLAs:list[str]) -> ControlType:
     raise DruncSetupException("Could not find if the child was controlled by gRPC or a REST API")
 
 
-from drunc.connectivity_service.client import ConnectivityServiceClient
 def get_control_type_and_uri_from_connectivity_service(
-    connectivity_service:ConnectivityServiceClient,
+    connectivity_service,
     name:str,
     timeout:int=10, # seconds
     retry_wait:float=0.1, # seconds
