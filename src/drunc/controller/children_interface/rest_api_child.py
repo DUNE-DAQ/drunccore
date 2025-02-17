@@ -81,41 +81,42 @@ class ResponseListener:
 
     @classmethod
     def get(cls):
-        if cls._instance is None:
-            cls._instance = cls.__new__(cls)
-            cls.port = get_new_port()
-            cls.app = Flask('response-listener')
-            cls.api = Api(cls.app)
-            cls.queue = multiprocessing.Queue()
-            cls.handlers = {}
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls.__new__(cls)
+                cls.port = get_new_port()
+                cls.app = Flask('response-listener')
+                cls.api = Api(cls.app)
+                cls.queue = multiprocessing.Queue()
+                cls.handlers = {}
 
-            cls.dispatcher = ResponseDispatcher(cls)
-            cls.dispatcher.start()
+                cls.dispatcher = ResponseDispatcher(cls)
+                cls.dispatcher.start()
 
-            def index():
-                log = get_logger('controller.ResponseListener')
-                json = request.get_json(force=True)
-                log.debug(f'Received {json}')
-                # enqueue command reply
-                cls.queue.put(json)
-                log.debug(f'Queue size {cls.queue.qsize()}')
-                log.debug(f'Queue pointer {cls.queue}')
-                return "Response received"
+                def index():
+                    log = get_logger('controller.ResponseListener')
+                    json = request.get_json(force=True)
+                    log.debug(f'Received {json}')
+                    # enqueue command reply
+                    cls.queue.put(json)
+                    log.debug(f'Queue size {cls.queue.qsize()}')
+                    log.debug(f'Queue pointer {cls.queue}')
+                    return "Response received"
 
-            def get():
-                return "ready"
+                def get():
+                    return "ready"
 
-            cls.app.add_url_rule("/response", "index", index, methods=["POST"])
-            cls.app.add_url_rule("/", "get", get, methods=["GET"])
-            cls.manager = FlaskManager(
-                port = cls.port,
-                app = cls.app,
-                name = "response-listener-flaskmanager"
-            )
+                cls.app.add_url_rule("/response", "index", index, methods=["POST"])
+                cls.app.add_url_rule("/", "get", get, methods=["GET"])
+                cls.manager = FlaskManager(
+                    port = cls.port,
+                    app = cls.app,
+                    name = "response-listener-flaskmanager"
+                )
 
-            cls.manager.start()
-            while not cls.manager.is_ready():
-                time.sleep(0.1)
+                cls.manager.start()
+                while not cls.manager.is_ready():
+                    time.sleep(0.1)
 
         return cls._instance
 
