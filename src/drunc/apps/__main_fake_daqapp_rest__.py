@@ -199,7 +199,7 @@ def main():
         exit(1)
 
     url = urlparse(args.commandFacility)
-    if urlparse(url).scheme != "rest":
+    if url.scheme != "rest":
         log.exception("DAQApplication communication scheme must be rest")
         exit(1)
 
@@ -224,9 +224,10 @@ def main():
     for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM, signal.SIGQUIT]:
         signal.signal(sig, terminate)
 
-    # connectivity_service_thread.start()
-    log.info(f"Starting FakeDAQ app on {url}, communicating through rest://{url.hostname}:{url.port}")
-    # app.run(host=url.hostname, port=url.port, debug=True)
+    url = urlparse(url)
+    connectivity_service_thread.start()
+    log.info(f"Starting FakeDAQ app on {url.geturl()}")
+    app.run(host=url.hostname, port=url.port, debug=True)
 
 if __name__ == '__main__':
     main()
