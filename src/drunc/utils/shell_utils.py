@@ -276,9 +276,10 @@ class ShellContext:
             raise SystemExit(1) # used to avoid having to catch multiple Attribute errors when this function gets called
 
     def delete_driver(self, name: str) -> None:
+        log = get_logger("utils.ShellContext")
         if name in self._drivers:
             del self._drivers[name]
-            self.log.info(f"Driver {name} has been deleted.")
+            log.info(f"Driver "{name}" has been deleted.")
     
     def get_token(self) -> Token:
         return self._token
