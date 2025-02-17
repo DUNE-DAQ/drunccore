@@ -1,32 +1,35 @@
-from druncschema.authoriser_pb2 import ActionType, SystemType
-from druncschema.broadcast_pb2 import BroadcastType
-from druncschema.process_manager_pb2 import BootRequest, ProcessQuery, ProcessInstance, ProcessRestriction, ProcessDescription, ProcessUUID, ProcessInstanceList, LogRequest, LogLine
-from druncschema.process_manager_pb2_grpc import ProcessManagerServicer
-from druncschema.request_response_pb2 import Request, Response, ResponseFlag
+import abc
+import re
+from google.rpc import code_pb2
 
+from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import authentified_and_authorised, async_authentified_and_authorised
+from drunc.authoriser.dummy_authoriser import DummyAuthoriser
+from drunc.broadcast.server.broadcast_sender import BroadcastSender
+from drunc.broadcast.server.configuration import BroadcastSenderConfHandler
 from drunc.broadcast.server.decorators import broadcasted, async_broadcasted
 from drunc.exceptions import DruncCommandException
 from drunc.process_manager.configuration import ProcessManagerConfHandler, ProcessManagerTypes
-from drunc.process_manager.utils import get_log_path, get_pm_conf_name_from_dir
-from drunc.utils.grpc_utils import unpack_request_data_to, async_unpack_request_data_to,pack_to_any
-from drunc.utils.utils import setup_logger, pid_info_str
+from drunc.utils.configuration import ConfTypes
+from drunc.utils.grpc_utils import async_unpack_request_data_to, pack_to_any, unpack_request_data_to
+from drunc.utils.utils import get_logger, pid_info_str
 
-import abc
-import os
-import getpass
-import logging
+from druncschema.authoriser_pb2 import ActionType, SystemType
+from druncschema.broadcast_pb2 import BroadcastType
+from druncschema.process_manager_pb2 import BootRequest, LogLine, LogRequest, ProcessDescription, ProcessInstance, ProcessInstanceList, ProcessQuery, ProcessRestriction, ProcessUUID
+from druncschema.process_manager_pb2_grpc import ProcessManagerServicer
+from druncschema.request_response_pb2 import CommandDescription, Description, Request, Response, ResponseFlag
+
 
 class BadQuery(DruncCommandException):
     def __init__(self, txt):
-        from google.rpc import code_pb2
         super(BadQuery, self).__init__(txt, code_pb2.INVALID_ARGUMENT)
 
 class ProcessManager(abc.ABC, ProcessManagerServicer):
 
     def __init__(self, configuration:ProcessManagerConfHandler, name:str, session:str=None, **kwargs):
         super().__init__()
-        self.log = logging.getLogger("drunc.process_manager")
+        self.log = get_logger(f"process_manager.{configuration.data.type._name_}_process_manager")
         self.log.debug(pid_info_str())
         self.log.debug("Initialized ProcessManager")
 
@@ -34,29 +37,22 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         self.name = name
         self.session = session
 
-        from drunc.broadcast.server.configuration import BroadcastSenderConfHandler
-        from drunc.utils.configuration import ConfTypes
         bsch = BroadcastSenderConfHandler(
             data = self.configuration.data.broadcaster,
             type = ConfTypes.PyObject
         )
 
-        from drunc.broadcast.server.broadcast_sender import BroadcastSender
         self.broadcast_service = BroadcastSender(
             name = name,
             session = session,
             configuration = bsch,
         ) if bsch.data else None
 
-        from drunc.authoriser.configuration import DummyAuthoriserConfHandler
-        from drunc.utils.configuration import ConfTypes
         dach = DummyAuthoriserConfHandler(
             data = self.configuration.data.authoriser,
             type = ConfTypes.PyObject
         )
 
-        from drunc.authoriser.dummy_authoriser import DummyAuthoriser
-        from druncschema.authoriser_pb2 import SystemType
         self.authoriser = DummyAuthoriser(
             dach,
             SystemType.PROCESS_MANAGER
@@ -65,7 +61,6 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         self.process_store = {} # dict[str, sh.RunningCommand]
         self.boot_request = {} # dict[str, BootRequest]
 
-        from druncschema.request_response_pb2 import CommandDescription
         # TODO, probably need to think of a better way to do this?
         # Maybe I should "bind" the commands to their methods, and have something looping over this list to generate the gRPC functions
         # Not particularly pretty...
@@ -199,7 +194,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     ) # 2nd step
     @unpack_request_data_to(None) # 3rd step
     def terminate(self) -> Response:
-        self.log.info(f"{self.name} terminating")
+        self.log.debug(f"{self.name} terminating")
         try:
             resp = self._terminate_impl()
             return Response(
@@ -230,7 +225,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     ) # 2nd step
     @unpack_request_data_to(ProcessQuery) # 3rd step
     def restart(self, q:ProcessQuery)-> Response:
-        self.log.info(f"{self.name} running restart")
+        self.log.debug(f"{self.name} running restart")
         try:
             resp = self._restart_impl(q)
             return Response(
@@ -262,7 +257,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     ) # 2nd step
     @unpack_request_data_to(ProcessQuery) # 3rd step
     def kill(self, q:ProcessQuery) -> Response:
-        self.log.info(f"{self.name} running kill")
+        self.log.debug(f"{self.name} running kill")
         try:
             resp = self._kill_impl(q)
             return Response(
@@ -348,7 +343,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             try:
                 if not self.process_store[uuid].is_alive(): # OMG!! remove this implementation code
                     return_code = self.process_store[uuid].exit_code
-            except Exception as e:
+            except Exception:
                 pass
 
             if not self.process_store[uuid].is_alive():
@@ -384,12 +379,11 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     @unpack_request_data_to(None) # 3rd step
     def describe(self) -> Response:
         self.log.debug(f"{self.name} running describe")
-        from druncschema.request_response_pb2 import Description
-        from drunc.utils.grpc_utils import pack_to_any
         bd = self.describe_broadcast()
         d = Description(
             type = 'process_manager',
             name = self.name,
+            info = self.configuration.log_path,
             session = 'no_session' if not self.session else self.session,
             commands = self.commands,
         )
@@ -418,7 +412,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     ) # 2nd step
     @async_unpack_request_data_to(LogRequest) # 3rd step
     async def logs(self, lr:LogRequest) -> Response:
-        self.log.debug(f"Getting logs")
+        self.log.debug("Getting logs")
         try:
             async for r in self._logs_impl(lr):
                 yield Response(
@@ -439,9 +433,9 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
 
     def _ensure_one_process(self, uuids:[str], in_boot_request:bool=False) -> str:
         if uuids == []:
-            raise BadQuery(f'The process corresponding to the query doesn\'t exist')
+            raise BadQuery('The process corresponding to the query doesn\'t exist')
         elif len(uuids)>1:
-            raise BadQuery(f'There are more than 1 processes corresponding to the query')
+            raise BadQuery('There are more than 1 processes corresponding to the query')
 
         if in_boot_request:
             if not uuids[0] in self.boot_request:
@@ -453,8 +447,6 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
 
 
     def _get_process_uid(self, query:ProcessQuery, in_boot_request:bool=False) -> [str]:
-        import re
-
         uuid_selector = []
         name_selector = query.names
         user_selector = query.user
@@ -487,16 +479,15 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
 
     @staticmethod
     def get(conf, **kwargs):
-        from logging import getLogger
-        log = getLogger("ProcessManager_get")
+        log = get_logger("process_manager.get")
 
         if conf.data.type == ProcessManagerTypes.SSH:
-            log.info(f'Starting \'SSHProcessManager\'')
             from drunc.process_manager.ssh_process_manager import SSHProcessManager
+            log.info('Starting [green]SSH process_manager[/green]')
             return SSHProcessManager(conf, **kwargs)
         elif conf.data.type == ProcessManagerTypes.K8s:
-            log.info(f'Starting \'K8sProcessManager\'')
             from drunc.process_manager.k8s_process_manager import K8sProcessManager
+            log.info('Starting [green]K8s process_manager[/green]')
             return K8sProcessManager(conf, **kwargs)
         else:
             log.error(f'ProcessManager type {conf.get("type")} is unsupported!')
