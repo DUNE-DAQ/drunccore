@@ -1,8 +1,19 @@
 import abc
-from druncschema.token_pb2 import Token
-from druncschema.request_response_pb2 import Request
+import click
+import getpass
+from google.protobuf.any_pb2 import Any
+import grpc
+from rich.console import Console
 from typing import Mapping
-from drunc.exceptions import DruncShellException
+
+from drunc.exceptions import DruncSetupException, DruncShellException, DruncServerSideError
+from drunc.utils.grpc_utils import rethrow_if_unreachable_server, unpack_any
+from drunc.utils.utils import get_logger, print_traceback, setup_root_logger
+
+from druncschema.generic_pb2 import Stacktrace, PlainText
+from druncschema.token_pb2 import Token
+from druncschema.request_response_pb2 import Request, ResponseFlag
+
 
 class InterruptedCommand(DruncShellException):
     '''
@@ -10,6 +21,18 @@ class InterruptedCommand(DruncShellException):
     '''
     pass
 
+def create_dummy_token_from_uname() -> Token:
+    user = getpass.getuser()
+    return Token ( # fake token, but should be figured out from the environment/authoriser
+        token = f'{user}-token',
+        user_name = user
+    )
+
+def add_traceback_flag():
+    def wrapper(f0):
+        f1 = click.option('-t/-nt','--traceback/--no-traceback', default=None, help='Print full exception traceback')(f0)
+        return f1
+    return wrapper
 
 class DecodedResponse:
     ## Warning! This should be kept in sync with druncschema/request_response.proto/Response class
@@ -41,16 +64,11 @@ class DecodedResponse:
     def __str__(self):
         return DecodedResponse.str(self)
 
-
 class GRPCDriver:
     def __init__(self, name:str, address:str, token:Token, aio_channel=False):
-        import logging
-        self._log = logging.getLogger(name)
-        import grpc
-        from druncschema.token_pb2 import Token
+        self.log = get_logger("utils.GRPCDriver")
 
         if not address:
-            from drunc.exceptions import DruncSetupException
             raise DruncSetupException(f'You need to provide a valid IP address for the driver. Provided \'{address}\'')
 
         self.address = address
@@ -69,8 +87,6 @@ class GRPCDriver:
         pass
 
     def _create_request(self, payload=None) -> Request:
-        from google.protobuf.any_pb2 import Any
-
         token2 = Token()
         token2.CopyFrom(self.token)
         data = Any()
@@ -88,15 +104,15 @@ class GRPCDriver:
             )
 
     def __handle_grpc_error(self, error, command):
-        from drunc.utils.grpc_utils import rethrow_if_unreachable_server#, interrupt_if_unreachable_server
         rethrow_if_unreachable_server(error)
         # else:
+        #     from drunc.utils.grpc_utils import interrupt_if_server_unreachable
         #     text = interrupt_if_unreachable_server(error)
         #     if text:
-        #         self._log.error(text)
+        #         self.log.error(text)
 
         # if hasattr(error, 'details'): #ARGG asyncio gRPC so different from synchronous one!!
-        #     self._log.error(error.details())
+        #     self.log.error(error.details())
 
         #     # of course, right now asyncio servers are not able to reply with a stacktrace (yet)
         #     # we just throw the client-side error and call it a day for now
@@ -104,33 +120,30 @@ class GRPCDriver:
         #         raise error
 
     def handle_response(self, response, command, outformat):
-        from druncschema.request_response_pb2 import ResponseFlag, Response
-        from drunc.utils.grpc_utils import unpack_any
         dr = DecodedResponse(
             name = response.name,
             token = response.token,
             flag = response.flag,
         )
+
         if response.flag == ResponseFlag.EXECUTED_SUCCESSFULLY:
             if response.data not in [None, ""]:
                 dr.data = unpack_any(response.data, outformat)
 
-            from drunc.exceptions import DruncServerSideError
             for c_response in response.children:
                 try:
                     dr.children.append(self.handle_response(c_response, command, outformat))
                 except DruncServerSideError as e:
-                    self._log.error(f"Exception thrown from child: {e}")
+                    self.log.error(f"Exception thrown from child: {e}")
             return dr
 
         else:
+
             def text(verb="not executed", reason=""):
                 return f'Command \'{command}\' {verb} on \'{response.name}\' (response flag \'{ResponseFlag.Name(response.flag)}\') {reason}'
 
 
             if not response.HasField("data"): return None
-            from druncschema.generic_pb2 import Stacktrace, PlainText, PlainTextVector
-            from drunc.utils.grpc_utils import unpack_any
 
             error_txt = ''
             stack_txt = None
@@ -138,9 +151,10 @@ class GRPCDriver:
             if response.data.Is(Stacktrace.DESCRIPTOR):
                 stack = unpack_any(response.data, Stacktrace)
                 dr.data = stack
-                #stack_txt = 'Stacktrace [bold red]on remote server![/bold red]\n' # Temporary - bold doesn't work
+                # stack_txt = 'Stacktrace [bold red]on remote server![/bold red]\n' # Temporary - bold doesn't work
                 stack_txt = 'Stacktrace on remote server!\n'
                 last_one = ""
+
                 for l in stack.text:
                     stack_txt += l+"\n"
                     if l != "":
@@ -149,38 +163,30 @@ class GRPCDriver:
 
             elif response.data.Is(PlainText.DESCRIPTOR):
                 txt = unpack_any(response.data, PlainText)
-                error_txt = txt.text
-                dr.data = txt
-
-            # if rethrow:
-            #     from drunc.exceptions import DruncServerSideError
-            #     raise DruncServerSideError(error_txt, stack_txt)
+                error_txt = txt.text  # noqa: F841  (might need to revisit this)
+                dr.data = error_txt
 
             if response.flag in [
                 ResponseFlag.NOT_EXECUTED_NOT_IMPLEMENTED,
             ]:
-                self._log.debug(text())
+                self.log.debug(text())
             elif response.flag in [
                 ResponseFlag.NOT_EXECUTED_NOT_IN_CONTROL,
             ]:
-                self._log.warn(text())
+                self.log.warn(text())
             else:
-                self._log.error(text("failed", error_txt))
+                self.log.error(text("failed", error_txt))
 
-            #dr.data = response.data
-            from drunc.exceptions import DruncServerSideError
             for c_response in response.children:
                 try:
                     dr.children.append(self.handle_response(c_response, command, outformat))
                 except DruncServerSideError as e:
-                    self._log.error(f"Exception thrown from child: {e}")
+                    self.log.error(f"Exception thrown from child: {e}")
             return dr
 
             # raise DruncServerSideError(error_txt, stack_txt, server_response=dr)
 
-
     def send_command(self, command:str, data=None, outformat=None, decode_children=False):
-        import grpc
         if not self.stub:
             raise DruncShellException('No stub initialised')
 
@@ -194,9 +200,7 @@ class GRPCDriver:
             self.__handle_grpc_error(e, command)
         return self.handle_response(response, command, outformat)
 
-
     async def send_command_aio(self, command:str, data=None, outformat=None):
-        import grpc
         if not self.stub:
             raise DruncShellException('No stub initialised')
 
@@ -211,9 +215,7 @@ class GRPCDriver:
             self.__handle_grpc_error(e, command)
         return self.handle_response(response, command, outformat)
 
-
     async def send_command_for_aio(self, command:str, data=None, outformat=None):
-        import grpc
         if not self.stub:
             raise DruncShellException('No stub initialised')
 
@@ -228,23 +230,18 @@ class GRPCDriver:
         except grpc.aio.AioRpcError as e:
             self.__handle_grpc_error(e, command)
 
-
-
 class ShellContext:
     def _reset(self, name:str, token_args:dict={}, driver_args:dict={}):
-        from rich.console import Console
         self._console = Console()
-        from logging import getLogger
-        self._log = getLogger(name)
         self._token = self.create_token(**token_args)
         self._drivers: Mapping[str, GRPCDriver] = self.create_drivers(**driver_args)
 
     def __init__(self, *args, **kwargs):
+        setup_root_logger("NOTSET")
         try:
             self.reset(*args, **kwargs)
         except Exception as e:
-            from drunc.utils.utils import print_traceback
-            print_traceback()
+            print_traceback(e)
             exit(1)
 
     @abc.abstractmethod
@@ -273,66 +270,33 @@ class ShellContext:
             if name:
                 return self._drivers[name]
             elif len(self._drivers)>1:
-                raise DruncShellException(f'More than one driver in this context')
+                raise DruncShellException('More than one driver in this context')
             return list(self._drivers.values())[0]
         except KeyError:
-            self._log.error(f'Driver {name} commands are not available right now')
+            log = get_logger("utils.ShellContext")
+            log.exception('Controller-specific commands cannot be sent until the session is booted')
             raise SystemExit(1) # used to avoid having to catch multiple Attribute errors when this function gets called
 
     def delete_driver(self, name: str) -> None:
+        log = get_logger("utils.ShellContext")
         if name in self._drivers:
             del self._drivers[name]
-            self._log.info(f"Driver {name} has been deleted.")
+            log.info(f"Driver '{name}' has been deleted.")
 
     def get_token(self) -> Token:
         return self._token
 
     def print(self, *args, **kwargs) -> None:
-        self._console.print(*args, **kwargs)
+        self._console.print(*args, **kwargs) # rich tables require console printing
 
     def rule(self, *args, **kwargs) -> None:
         self._console.rule(*args, **kwargs)
 
-    def info(self, *args, **kwargs) -> None:
-        self._log.info(*args, **kwargs)
-
-    def warn(self, *args, **kwargs) -> None:
-        self._log.warn(*args, **kwargs)
-
-    def error(self, *args, **kwargs) -> None:
-        self._log.error(*args, **kwargs)
-
-    def debug(self, *args, **kwargs) -> None:
-        self._log.debug(*args, **kwargs)
-
-    def critical(self, *args, **kwargs) -> None:
-        self._log.critical(*args, **kwargs)
-
-
     def print_status_summary(self) -> None:
+        log = get_logger("utils.ShellContext")
         status = self.get_driver('controller').status().data
         if status.in_error:
-            self.print(f"[red] FSM is in error ({status})[/red], not currently accepting new commands.")
+            log.error(f"[red] FSM is in error ({status})[/red], not currently accepting new commands.")
         else:
             available_actions = [command.name.replace("_", "-") for command in self.get_driver('controller').describe_fsm().data.commands]
-            self.print(f"Current FSM status is [green]{status.state}[/green]. Available transitions are [green]{'[/green], [green]'.join(available_actions)}[/green].")
-
-
-def create_dummy_token_from_uname() -> Token:
-    from drunc.utils.shell_utils import create_dummy_token_from_uname
-    import getpass
-    user = getpass.getuser()
-
-    from druncschema.token_pb2 import Token
-    return Token ( # fake token, but should be figured out from the environment/authoriser
-        token = f'{user}-token',
-        user_name = user
-    )
-
-
-def add_traceback_flag():
-    def wrapper(f0):
-        import click
-        f1 = click.option('-t/-nt','--traceback/--no-traceback', default=None, help='Print full exception traceback')(f0)
-        return f1
-    return wrapper
+            log.info(f"Current FSM status is [green]{status.state}[/green]. Available transitions are [green]{'[/green], [green]'.join(available_actions)}[/green].")

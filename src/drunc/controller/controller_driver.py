@@ -1,10 +1,9 @@
-from druncschema.request_response_pb2 import Request, Response, Description
-from druncschema.generic_pb2 import PlainText, PlainTextVector
-from druncschema.controller_pb2 import Status, FSMCommandResponse, FSMCommandsDescription
-from druncschema.controller_pb2_grpc import ControllerStub
+from drunc.utils.shell_utils import DecodedResponse, GRPCDriver
 
-from drunc.utils.grpc_utils import unpack_any
-from drunc.utils.shell_utils import GRPCDriver, DecodedResponse
+from druncschema.controller_pb2 import FSMCommandsDescription, FSMCommandResponse, Status
+from druncschema.controller_pb2_grpc import ControllerStub
+from druncschema.generic_pb2 import PlainText
+from druncschema.request_response_pb2 import Description
 
 
 class ControllerDriver(GRPCDriver):
