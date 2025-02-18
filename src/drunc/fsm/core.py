@@ -5,7 +5,7 @@ import drunc.fsm.exceptions as fsme
 from drunc.fsm.transition import Transition
 import traceback
 from typing import Optional
-from kafkaopmon.OpMonPublisher import OpMonPublisher
+
 
 class FSMAction:
     '''Abstract class defining a generic action'''
@@ -158,10 +158,9 @@ class PreOrPostTransitionSequence:
 
 
 class FSM:
-    def __init__(self, conf, publisher: Optional[OpMonPublisher] = None):
+    def __init__(self, conf):
 
         self.configuration = conf
-        self.publisher = publisher
 
         from logging import getLogger
         self._log = getLogger('FSM')
@@ -247,7 +246,6 @@ class FSM:
 
 
     def prepare_transition(self, transition, transition_data, transition_args, ctx=None):
-        ctx.publisher = self.publisher
         transition_data = self.pre_transition_sequences[transition].execute(
             transition_data,
             transition_args,
@@ -257,7 +255,6 @@ class FSM:
 
 
     def finalise_transition(self, transition, transition_data, transition_args, ctx=None):
-        ctx.publisher = self.publisher
         transition_data = self.post_transition_sequences[transition].execute(
             transition_data,
             transition_args,

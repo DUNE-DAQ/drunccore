@@ -98,7 +98,7 @@ class StatefulNode(abc.ABC):
 
         self.publisher = publisher
 
-        self.__fsm = FSM(fsm_configuration, publisher=self.publisher)
+        self.__fsm = FSM(fsm_configuration)
 
         from logging import getLogger
         self.logger = getLogger('StatefulNode')

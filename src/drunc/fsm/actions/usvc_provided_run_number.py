@@ -2,7 +2,7 @@ from drunc.fsm.core import FSMAction
 import requests
 import os
 import json
-from opmonlib.opmon.test_pb2 import TestInfo
+from druncschema.opmon_pb2 import RunInfo
 
 
 class UsvcProvidedRunNumber(FSMAction):
@@ -29,14 +29,14 @@ class UsvcProvidedRunNumber(FSMAction):
         _input_data['disable_data_storage'] = disable_data_storage
         _input_data['trigger_rate'] = trigger_rate
 
-        _context.publisher.publish(
+        _context.opmon_publisher.publish(
                 session="test_runnumber_session",
                 application="test_runnumber_app",
-                message = TestInfo(
-                    string_example=run_type, 
-                    float_example=trigger_rate,
-                    int_example=_input_data["run"], 
-                    bool_example=disable_data_storage
+                message = RunInfo(
+                    run_type=run_type, 
+                    trigger_rate=trigger_rate,
+                    run_number=_input_data["run"], 
+                    disable_data_storage=disable_data_storage
                     )
             )
 
