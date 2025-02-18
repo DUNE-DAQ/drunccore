@@ -2,9 +2,8 @@ import abc
 from drunc.fsm.core import FSM
 from drunc.broadcast.server.broadcast_sender import BroadcastSender
 from kafkaopmon.OpMonPublisher import OpMonPublisher
-import drunc.fsm.exceptions as fsme
+import drunc.fsm.exceptions as InvalidTransition
 from typing import Optional
-from druncschema.broadcast_pb2 import BroadcastType
 
 
 class Observed:

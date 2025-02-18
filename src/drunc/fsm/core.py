@@ -1,10 +1,8 @@
-from drunc.fsm.action_factory import FSMActionFactory
-from typing import List, Set, Dict, Tuple
+from typing import List
 from inspect import signature, Parameter
 import drunc.fsm.exceptions as fsme
 from drunc.fsm.transition import Transition
 import traceback
-from typing import Optional
 
 
 class FSMAction:

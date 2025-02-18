@@ -1,7 +1,5 @@
 from drunc.fsm.core import FSMAction
 import requests
-import os
-import json
 from druncschema.opmon_pb2 import RunInfo
 
 
@@ -12,7 +10,7 @@ class UsvcProvidedRunNumber(FSMAction):
         )
         from drunc.utils.utils import expand_path
         f = open(expand_path("~/.drunc.json")) # cp /nfs/home/titavare/dunedaq_work_area/drunc-n24.5.26-1/.drunc.json
-        dotdrunc = json.load(f)
+        dotdrunc = json.load(f)``
         self.API_SOCKET = dotdrunc["run_number_configuration"]["socket"]
         self.API_USER = dotdrunc["run_number_configuration"]["user"]
         self.API_PSWD = dotdrunc["run_number_configuration"]["password"]
