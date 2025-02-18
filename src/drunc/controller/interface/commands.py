@@ -68,16 +68,14 @@ def connect(obj:ControllerContext, controller_address:str, force:bool) -> None:
         driver = obj.get_driver("controller")
         log.info(f'Already connected to a controller ({driver.name}@{driver.address})')
         if not force:
-            click.confirm(f'Do you want to disconnect from it before?', abort=True)
-        log.info(f'Disconnecting...')
+            click.confirm('Do you want to disconnect from it before?', abort=True)
+        log.info('Disconnecting...')
         obj.delete_driver('controller')
 
     log.info(f'Connecting this shell to the controller at {controller_address}...')
 
     if controller_address.startswith('grpc://'):
         controller_address = controller_address.replace('grpc://', '')
-
-    from drunc.exceptions import DruncException
 
     obj.set_controller_driver(controller_address)
     controller_setup(obj, controller_address)

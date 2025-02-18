@@ -281,7 +281,7 @@ class AppCommander:
                     'https': f'socks5h://{self.response_host}:{self.response_port}'
                 } if self.proxy_host else None
             )
-        except requests.ConnectionError|requests.MaxRetryError as e:
+        except requests.ConnectionError|requests.MaxRetryError:
             self.log.error(f'Connection error to {self.app_url}')
             raise CouldnotSendCommand(f'Connection error to {self.app_url}')
 

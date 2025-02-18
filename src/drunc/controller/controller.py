@@ -19,7 +19,7 @@ from drunc.controller.utils import get_detector_name, get_status_message
 from drunc.exceptions import DruncException
 from drunc.fsm.configuration import FSMConfHandler
 from drunc.fsm.utils import convert_fsm_transition
-from drunc.utils.grpc_utils import pack_to_any, unpack_any, unpack_request_data_to
+from drunc.utils.grpc_utils import pack_to_any, unpack_any, unpack_request_data_to, UnpackingError
 from drunc.utils.utils import get_logger
 
 from druncschema.authoriser_pb2 import ActionType, SystemType
@@ -29,20 +29,6 @@ from druncschema.controller_pb2_grpc import ControllerServicer
 from druncschema.generic_pb2 import PlainText, Stacktrace
 from druncschema.request_response_pb2 import CommandDescription, Description, Response, ResponseFlag
 from druncschema.token_pb2 import Token
-
-from drunc.authoriser.decorators import authentified_and_authorised
-from drunc.broadcast.server.broadcast_sender import BroadcastSender
-from drunc.broadcast.server.decorators import broadcasted
-from drunc.controller.children_interface.child_node import ChildNode
-from drunc.controller.decorators import in_control
-import drunc.controller.exceptions as ctler_excpt
-from drunc.controller.stateful_node import StatefulNode
-from drunc.exceptions import DruncException
-from drunc.utils.grpc_utils import pack_to_any
-from drunc.utils.grpc_utils import unpack_request_data_to, pack_response, UnpackingError, unpack_any
-
-import copy
-from typing import Optional, List
 
 class ControllerActor:
     def __init__(self, token:Optional[Token]=None):
@@ -461,6 +447,7 @@ class Controller(ControllerServicer):
             token = token,
             node_to_execute = self.children_nodes
         )
+
         return Response (
             name = self.name,
             token = None,

@@ -168,11 +168,11 @@ class GRPCDriver:
 
             elif response.data.Is(PlainText.DESCRIPTOR):
                 txt = unpack_any(response.data, PlainText)
-                error_txt = txt.text  # noqa: F841  (might need to revisit this)
+                error_txt = txt.text
+            self.log.error(error_txt)
 
-            # if rethrow:
-            #     raise DruncServerSideError(error_txt, stack_txt)
-
+            if stack_txt:
+                self.log.debug(stack_txt)
 
             dr.data = response.data
             for c_response in response.children:
@@ -181,8 +181,6 @@ class GRPCDriver:
                 except DruncServerSideError as e:
                     self.log.error(f"Exception thrown from child: {e}")
             return dr
-
-            # raise DruncServerSideError(error_txt, stack_txt, server_response=dr)
 
     def send_command(self, command:str, data=None, outformat=None, decode_children=False):
         if not self.stub:

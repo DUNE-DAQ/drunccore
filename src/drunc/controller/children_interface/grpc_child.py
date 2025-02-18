@@ -5,14 +5,13 @@ from drunc.broadcast.client.broadcast_handler import BroadcastHandler
 from drunc.broadcast.client.configuration import BroadcastClientConfHandler
 from drunc.controller.children_interface.child_node import ChildNode
 from drunc.controller.utils import send_command
-from drunc.exceptions import DruncException
-from drunc.utils.configuration import ConfHandler
-import grpc as grpc
 from drunc.exceptions import DruncSetupException
-from druncschema.request_response_pb2 import Response, ResponseFlag
-from druncschema.generic_pb2 import Stacktrace
-from drunc.utils.grpc_utils import pack_to_any
-from traceback import format_exc
+from drunc.utils.configuration import ConfHandler, ConfTypes
+from drunc.utils.grpc_utils import ServerUnreachable
+from drunc.utils.utils import ControlType, get_logger
+
+from druncschema.controller_pb2_grpc import ControllerStub
+from druncschema.request_response_pb2 import Description, Response
 
 class gRCPChildConfHandler(ConfHandler):
     def get_uri(self):
