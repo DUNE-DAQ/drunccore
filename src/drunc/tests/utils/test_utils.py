@@ -1,5 +1,5 @@
 import pytest
-
+import logging
 
 def test_get_random_string():
     from drunc.utils.utils import get_random_string
@@ -28,41 +28,41 @@ def test_print_traceback(capsys):
     try:
         raise ValueError("Test error")
     except ValueError as e:
-        print_traceback()
+        print_traceback(e)
     captured = capsys.readouterr()
     assert "ValueError" in captured.out
     assert "Test error" in captured.out
 
 
 def test_setup_logger(caplog):
-    from drunc.utils.utils import setup_logger
-    import logging
-    setup_logger("DEBUG")
-    assert logging.getLogger('drunc').getEffectiveLevel() == logging.DEBUG
-    assert logging.getLogger("drunc.tester0").getEffectiveLevel() == logging.DEBUG
+    from drunc.utils.utils import setup_root_logger, get_logger
+    
+    drunc_root_logger = setup_root_logger("DEBUG")
+    assert drunc_root_logger.getEffectiveLevel() == logging.DEBUG
+    assert get_logger("tester0").getEffectiveLevel() == logging.DEBUG
 
-    setup_logger("INFO")
-    assert logging.getLogger('drunc').getEffectiveLevel() == logging.INFO
-    assert logging.getLogger("drunc.tester1").getEffectiveLevel() == logging.INFO
+    drunc_root_logger.setLevel("INFO")
+    assert drunc_root_logger.getEffectiveLevel() == logging.INFO
+    assert get_logger("drunc.tester1").getEffectiveLevel() == logging.INFO
 
-    setup_logger("WARNING")
-    assert logging.getLogger('drunc').getEffectiveLevel() == logging.WARNING
-    assert logging.getLogger("drunc.tester2").getEffectiveLevel() == logging.WARNING
+    setup_root_logger.setLevel("WARNING")
+    assert drunc_root_logger.getEffectiveLevel() == logging.WARNING
+    assert get_logger("tester2").getEffectiveLevel() == logging.WARNING
 
-    setup_logger("ERROR")
-    assert logging.getLogger('drunc').getEffectiveLevel() == logging.ERROR
-    assert logging.getLogger("drunc.tester3").getEffectiveLevel() == logging.ERROR
+    setup_root_logger.setLevel("ERROR")
+    assert drunc_root_logger.getEffectiveLevel() == logging.ERROR
+    assert get_logger("tester3").getEffectiveLevel() == logging.ERROR
 
-    setup_logger("CRITICAL")
-    assert logging.getLogger('drunc').getEffectiveLevel() == logging.CRITICAL
-    assert logging.getLogger("drunc.tester4").getEffectiveLevel() == logging.CRITICAL
+    setup_root_logger.setLevel("CRITICAL")
+    assert drunc_root_logger.getEffectiveLevel() == logging.CRITICAL
+    assert get_logger("tester4").getEffectiveLevel() == logging.CRITICAL
 
     import tempfile
     with tempfile.TemporaryDirectory() as temp_dir:
         log_path = temp_dir+"/test.log"
 
-        setup_logger("CRITICAL", log_path=log_path)
-        logger = logging.getLogger("drunc.tester5")
+        setup_root_logger("CRITICAL", log_path=log_path)
+        logger = get_logger("tester5")
         logger.debug   ("invisible")
         logger.info    ("invisible")
         logger.warning ("invisible")
@@ -96,7 +96,6 @@ def test_get_new_port():
 
 def test_run_coroutine():
     from drunc.utils.utils import run_coroutine
-    import asyncio
 
     @run_coroutine
     async def test_this_coroutine(val):
@@ -120,10 +119,6 @@ def test_interrupt_run_coroutine(capsys):
         return val
 
     from threading import Thread
-    from multiprocessing import Process
-    import signal
-    import os
-    pid = os.getpid()
 
     process = Thread(target=test_this_coroutine, kwargs={"val":'abcdef'})
     # process = Process(target=test_this_coroutine, kwargs={"val":'abcdef'})
@@ -215,7 +210,7 @@ def generate_address(text):
 
 def test_resolve_localhost_to_hostname():
     from drunc.utils.utils import resolve_localhost_to_hostname
-    from socket import gethostbyname, gethostname
+    from socket import gethostname
     hostname = gethostname()
 
     resolved = resolve_localhost_to_hostname(generate_address("localhost"))
@@ -260,7 +255,7 @@ def test_host_is_local():
 
 def test_parent_death_pact():
     from drunc.utils.utils import parent_death_pact
-    from os import fork, getpid, kill, waitpid
+    from os import getpid
     from multiprocessing import Process
     from time import sleep
 
@@ -275,14 +270,15 @@ def test_parent_death_pact():
         # The purpose for this one is if someone ctrl+C the test, then this process should also die
         parent_pid = getpid()
         print(f'Parent PID: {parent_pid}')
-        child_process = Process(target=child_process, name="tester_child_process")
-        child_process.start()
+        child_process_ = Process(target=child_process, name="tester_child_process")
+        child_process_.start()
         sleep(10)
 
     process = Process(target=parent_process, name="tester_parent_process")
     process.start()
     sleep(0.1) # Let it run for a while...
     process.kill()
+    sleep(0.1) # Let it die for a while...
 
     # Check that the child process is dead
     assert process.is_alive() == False
