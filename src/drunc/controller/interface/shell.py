@@ -6,9 +6,7 @@ import os
 from drunc.controller.interface.shell_utils import controller_cleanup_wrapper, controller_setup, generate_fsm_command
 from drunc.utils.grpc_utils import ServerUnreachable
 from drunc.utils.utils import CONTEXT_SETTINGS, get_logger, log_levels, setup_root_logger, validate_command_facility
-from drunc.controller.interface.commands import (
-    describe, status, connect, take_control, expert_command, surrender_control, who_am_i, who_is_in_charge, include, exclude, wait
-)
+from drunc.controller.interface.commands import status, connect, take_control, expert_command, surrender_control, who_am_i, who_is_in_charge, include, exclude, wait
 
 @click_shell.shell(prompt='drunc-controller > ', chain=True, context_settings=CONTEXT_SETTINGS, hist_file=os.path.expanduser('~')+'/.drunc-controller-shell.history')
 @click.option('-l', '--log-level', type=click.Choice(log_levels.keys(), case_sensitive=False), default='INFO', help='Set the log level')

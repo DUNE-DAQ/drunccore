@@ -179,7 +179,6 @@ class ClientSideChild(ChildNode):
         )
 
     def propagate_fsm_command(self, data, token:Token) -> Response:
-        from drunc.exceptions import DruncException
         entry_state = self.state.get_operational_state()
         transition = self.fsm.get_transition(data.command_name)
         exit_state = self.fsm.get_destination_state(entry_state, transition)
