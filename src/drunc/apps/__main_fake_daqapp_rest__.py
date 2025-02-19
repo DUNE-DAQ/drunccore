@@ -19,71 +19,78 @@ from drunc.connectivity_service.client import ConnectivityServiceClient
 from drunc.utils.utils import get_logger, get_new_port, setup_root_logger, setup_standard_loggers, resolve_localhost_and_127_ip_to_network_ip
 
 __version__='1.0.0'
+setup_root_logger(log_level='info')
+setup_standard_loggers()
 
 class AppState:
     def __init__(self, app_name:str):
         self.appname = app_name
         self.state = 'INITIAL'
         self.executing_command = False
+        self.log = get_logger("fake_daqapp_rest.AppState")
 
-    def send_response(self, address:str, txt:str, success:bool=True, data:dict={}):
+    def send_response_to_response_listener(self, address:str, txt:str, success:bool=True, data:dict={}):
+        data_to_send = {
+            'success': success,
+            'result': txt,
+            'appname': self.appname,
+            'data': data,
+        }
+        self.log.info(f'Sending RESPONSE to {address}, data: {data_to_send}')
         try:
-            requests.post(
+            response = requests.post(
                 address,
-                data = {
-                    'success': success,
-                    'result': txt,
-                    'appname': self.appname,
-                    'data': data,
+                json = data_to_send,
+                headers = {
+                    'Content-Type': 'application/json',
                 }
             )
+            response.raise_for_status()
         except Exception as e:
-            log = get_logger("fake_daqapp_rest.AppState")
-            log.error(f'Couldn\'t send response to response listener')
-            log.exception(e)
+            self.log.error(f'Couldn\'t send response to response listener')
+            self.log.exception(e)
 
     def execute_command(self, req_data, answer_port, answer_host, remote_host) -> Response:
-        reply_address = f'{answer_host}:{answer_port}/response' if answer_host else f'{remote_host}:{answer_port}/response'
+        reply_address = f'http://{answer_host}:{answer_port}/response' if answer_host else f'{remote_host}:{answer_port}/response'
 
         entry_state = req_data['entry_state']
         exit_state  = req_data['exit_state']
         command_id  = req_data['id']
         data        = req_data.get('data', {})
-        log = get_logger("fake_daqapp_rest.AppState")
 
         if self.executing_command:
             response_txt = 'Already executing a command!!'
-            log.info(response_txt)
-            self.send_response(
+            self.log.info(response_txt)
+            self.send_response_to_response_listener(
                 address = reply_address,
                 txt = response_txt,
                 success = False,
             )
             return
 
-        time_spent = data.get('execution-time', random.randint(1, 10))
+        time_spent = data.get('execution-time', random.randint(1, 5))
 
         worries = random.randint(0, time_spent)
 
         if entry_state != '*' and self.state != entry_state.upper():
             info = f'DAQ Application is in state {self.state} and command {command_id} requires to be in state {entry_state.upper()} to execute. Not executing'
-            log.info(info)
-            self.send_response(
+            self.log.info(info)
+            self.send_response_to_response_listener(
                 success = False,
                 address = reply_address,
                 txt = info,
             )
             return
 
-        log.info(f'Executing {command_id}')
+        self.log.info(f'Executing {command_id}')
 
         self.executing_command = True
 
         if data.get('seg_fault'):
             time.sleep(worries)
             info = '<seeeeeeeeeg fauuuuuuuult message>'
-            log.info(info)
-            self.send_response(
+            self.log.info(info)
+            self.send_response_to_response_listener(
                 success = False,
                 address = reply_address,
                 txt = info,
@@ -94,8 +101,8 @@ class AppState:
         if data.get('throw'):
             time.sleep(worries)
             what = 'This is an eRrOr, YoU hAvE bEeN vErY nAuGhTy (aka task failed successfully)',
-            log.info(what)
-            self.send_response(
+            self.log.info(what)
+            self.send_response_to_response_listener(
                 success = False,
                 address = reply_address,
                 txt = what,
@@ -103,11 +110,14 @@ class AppState:
             self.executing_command = False
             return
 
-
+        print(f'Sleeping for {time_spent} seconds')
 
         time.sleep(time_spent)
-        info = f'Executed {command_id} successfully'
-        self.send_response(
+
+        info = f'Executed {command_id} successfully, after {time_spent} seconds'
+        self.log.info(info)
+
+        self.send_response_to_response_listener(
             success = True,
             address = reply_address,
             txt = info,
@@ -116,21 +126,30 @@ class AppState:
         self.executing_command = False
         return
 
-app_state = AppState('unknown')
 
 '''
 Resources for Flask app
 '''
+
 class AppCommand(Resource):
+
+    @classmethod
+    def pass_daq_app(cls, daq_app):
+        cls.daq_app = daq_app
+        return cls
+
     def post(self):
+        global app_state
+
         try:
             data = request.get_json(force=True)
         except:
             return "Not a JSON command!\n", 406
+
         log = get_logger("fake_daqapp_rest.AppCommand")
-        log.debug(f'GET request with args: {data}')
+        log.info(f'GET request with args: {data}')
         thread = threading.Thread(
-            target = app_state.execute_command,
+            target = self.daq_app.execute_command,
             kwargs = {
                 'req_data'   : cp.deepcopy(data),
                 'answer_port': request.headers['X-Answer-Port'],
@@ -141,12 +160,6 @@ class AppCommand(Resource):
         thread.start()
 
         return "Command received\n", 202
-# '''
-# Main flask app
-# '''
-# app = Flask(__name__)
-# api = Api(app)
-# api.add_resource(AppCommand, "/command", methods=['POST'])
 
 def update_connectivity_service(
     name,
@@ -184,10 +197,9 @@ def main():
     args = parser.parse_args()
 
     name = args.name
-    app_state.app_name = name
+    print(f'Name: {name}')
+    app_state = AppState(name)
 
-    root_logger = setup_root_logger(args.log_level)
-    setup_standard_loggers()
     log = get_logger(
         "fake_daqapp_rest",
         rich_handler=True
@@ -234,7 +246,8 @@ def main():
     #     signal.signal(sig, terminate)
     app = Flask(__name__)
     api = Api(app)
-    api.add_resource(AppCommand, "/command", methods=['POST'])
+    DAQAppCMD = AppCommand.pass_daq_app(app_state)
+    api.add_resource(DAQAppCMD, "/command", methods=['POST'])
     app.add_url_rule("/", "index", index)
 
     url = urlparse(url)
@@ -254,6 +267,9 @@ def main():
         log.info(f"Response: {response.status_code}")
         if response.status_code == 200:
             break
+        if i == 9:
+            log.error("Failed to start fake DAQ app")
+            exit(1)
         time.sleep(1)
 
     connectivity_service_thread.start()
