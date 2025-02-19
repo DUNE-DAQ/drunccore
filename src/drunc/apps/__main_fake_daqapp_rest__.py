@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 import conffwk
 
 from drunc.connectivity_service.client import ConnectivityServiceClient
-from drunc.utils.utils import get_logger, get_new_port, setup_root_logger, setup_standard_loggers
+from drunc.utils.utils import get_logger, get_new_port, setup_root_logger, setup_standard_loggers, resolve_localhost_and_127_ip_to_network_ip
 
 __version__='1.0.0'
 
@@ -202,7 +202,7 @@ def main():
         log.error("No command facility passed, exiting")
         exit(1)
 
-    url = urlparse(args.commandFacility)
+    url = urlparse(resolve_localhost_and_127_ip_to_network_ip(args.commandFacility))
     if url.scheme != "rest":
         log.exception("DAQApplication communication scheme must be rest")
         exit(1)
@@ -238,7 +238,9 @@ def main():
     app.add_url_rule("/", "index", index)
 
     url = urlparse(url)
-    log.info(f"Starting FakeDAQ app on {url.geturl()}")
+    flask_url = url.geturl().replace("rest://", "http://")
+
+    log.info(f"Starting FakeDAQ app on {flask_url}")
     flask_thread = threading.Thread(
         target = app.run,
         kwargs = {'host': url.hostname, 'port': url.port, 'debug': False},
@@ -248,7 +250,7 @@ def main():
     flask_thread.start()
 
     for i in range(10):
-        response = requests.get(url.geturl().replace("rest://", "http://") + "/")
+        response = requests.get(flask_url + "/")
         log.info(f"Response: {response.status_code}")
         if response.status_code == 200:
             break
