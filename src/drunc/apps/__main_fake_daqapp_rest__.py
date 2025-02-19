@@ -8,10 +8,12 @@ from flask import Flask, Response, request
 from flask_restful import Api, Resource
 import random
 import requests
+import os
 import signal
 import threading
 import time
 from urllib.parse import urlparse
+import conffwk
 
 from drunc.connectivity_service.client import ConnectivityServiceClient
 from drunc.utils.utils import get_logger, get_new_port, setup_root_logger, setup_standard_loggers
@@ -139,27 +141,27 @@ class AppCommand(Resource):
         thread.start()
 
         return "Command received\n", 202
-'''
-Main flask app
-'''
-app = Flask(__name__)
-api = Api(app)
-api.add_resource(AppCommand, "/command", methods=['POST'])
+# '''
+# Main flask app
+# '''
+# app = Flask(__name__)
+# api = Api(app)
+# api.add_resource(AppCommand, "/command", methods=['POST'])
 
 def update_connectivity_service(
     name,
     connectivity_service,
-    interval
+    interval,
+    url
 ):
     while True:
         connectivity_service.publish(
             name + "_control",
-            connectivity_service.address,
+            url,
             'RunControlMessage',
         )
         time.sleep(interval)
 
-@app.route('/')
 def index():
   return f'Fake DAQ app v{__version__}'
 
@@ -190,7 +192,12 @@ def main():
         "fake_daqapp_rest",
         rich_handler=True
     )
-
+    conf = conffwk.Configuration(args.configurationService)
+    session = conf.get_dal(
+        class_name="Session",
+        uid=args.session,
+    )
+    connectivity_service_address = session.connectivity_service.host + ":" + str(session.connectivity_service.service.port)
     if not args.commandFacility:
         log.error("No command facility passed, exiting")
         exit(1)
@@ -206,28 +213,48 @@ def main():
     log.info(f"Communication address is {url}")
 
     interval = 2
+
     connectivity_service = ConnectivityServiceClient(
-        session=name,
-        address=url,
+        session=args.session,
+        address=connectivity_service_address,
     )
+
     connectivity_service_thread = threading.Thread(
         target = update_connectivity_service,
-        args = (name, connectivity_service, interval),
+        args = (name, connectivity_service, interval, url),
         name = 'connectivity_service_updating_thread'
     )
 
-    # Doesn't do what is expected, probably flask 
+    # Doesn't do what is expected, probably flask
     # def terminate(signum, sigframe):
     #     connectivity_service_thread.join()
     #     log.info("Connectivity service terminated")
     #     exit(1)
     # for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM, signal.SIGQUIT]:
     #     signal.signal(sig, terminate)
+    app = Flask(__name__)
+    api = Api(app)
+    api.add_resource(AppCommand, "/command", methods=['POST'])
+    app.add_url_rule("/", "index", index)
 
     url = urlparse(url)
-    connectivity_service_thread.start()
     log.info(f"Starting FakeDAQ app on {url.geturl()}")
-    app.run(host=url.hostname, port=url.port, debug=True)
+    flask_thread = threading.Thread(
+        target = app.run,
+        kwargs = {'host': url.hostname, 'port': url.port, 'debug': False},
+        name = 'flask_thread'
+    )
+
+    flask_thread.start()
+
+    for i in range(10):
+        response = requests.get(url.geturl().replace("rest://", "http://") + "/")
+        log.info(f"Response: {response.status_code}")
+        if response.status_code == 200:
+            break
+        time.sleep(1)
+
+    connectivity_service_thread.start()
 
 if __name__ == '__main__':
     main()
