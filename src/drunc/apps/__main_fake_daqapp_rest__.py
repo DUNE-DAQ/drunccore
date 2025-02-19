@@ -18,8 +18,6 @@ from drunc.utils.utils import get_logger, get_new_port, setup_root_logger, setup
 
 __version__='1.0.0'
 
-# Logger
-
 class AppState:
     def __init__(self, app_name:str):
         self.appname = app_name
@@ -141,10 +139,6 @@ class AppCommand(Resource):
         thread.start()
 
         return "Command received\n", 202
-
-def get_address_for_conn_srv(hostname):
-    return f"rest://{hostname}:{get_new_port()}"
-
 '''
 Main flask app
 '''
@@ -168,6 +162,9 @@ def update_connectivity_service(
 @app.route('/')
 def index():
   return f'Fake DAQ app v{__version__}'
+
+def get_address_for_conn_srv(hostname):
+    return f"rest://{hostname}:{get_new_port()}"
 
 
 def main():
@@ -219,10 +216,13 @@ def main():
         name = 'connectivity_service_updating_thread'
     )
 
-    def terminate(signum, sigframe):
-        connectivity_service_thread.join()
-    for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM, signal.SIGQUIT]:
-        signal.signal(sig, terminate)
+    # Doesn't do what is expected, probably flask 
+    # def terminate(signum, sigframe):
+    #     connectivity_service_thread.join()
+    #     log.info("Connectivity service terminated")
+    #     exit(1)
+    # for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM, signal.SIGQUIT]:
+    #     signal.signal(sig, terminate)
 
     url = urlparse(url)
     connectivity_service_thread.start()
