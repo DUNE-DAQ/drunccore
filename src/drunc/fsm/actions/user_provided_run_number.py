@@ -17,9 +17,12 @@ class UserProvidedRunNumber(FSMAction):
         _input_data['disable_data_storage'] = disable_data_storage
         _input_data['trigger_rate'] = trigger_rate
 
+        _session = _context.session
+        _name = _context.name
+        
         _context.opmon_publisher.publish(
-                session="test_runnumber_session",
-                application="test_runnumber_app",
+                session=_session,
+                application=_name,
                 message = RunInfo(
                     run_type=run_type, 
                     trigger_rate=trigger_rate,
