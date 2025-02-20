@@ -27,8 +27,8 @@ class ControllerConfData: # the bastardised OKS
 
 class ControllerConfHandler(ConfHandler):
     @staticmethod
-    def find_segment(segment, id):
-        if segment.controller.id == id:
+    def find_segment(segment, id_):
+        if segment.controller.id == id_:
             return segment
 
         for child_segment in segment.segments:
@@ -42,7 +42,7 @@ class ControllerConfHandler(ConfHandler):
         self.session = self.db.get_dal(class_name="Session", uid=self.oks_key.session)
         this_segment = ControllerConfHandler.find_segment(self.session.segment, self.oks_key.obj_uid)
         if this_segment is None:
-            DruncSetupException(f"Could not find segment with oks_key.obj_uid: {self.oks_key.obj_uid}")
+            raise DruncSetupException(f"Could not find segment with oks_key.obj_uid: {self.oks_key.obj_uid}")
         return this_segment
 
     def _post_process_oks(self):
@@ -97,7 +97,7 @@ class ControllerConfHandler(ConfHandler):
             )
             if new_node:
                 self.children.append(new_node)
-            
+
         def process_application(app):
             if enabled_only:
                 if confmodel.component_disabled(self.db._obj, session.id, app.id):
@@ -113,8 +113,8 @@ class ControllerConfHandler(ConfHandler):
             )
             if new_node:
                 self.children.append(new_node)
-            
-        # threading the children look up    
+
+        # threading the children look up
         threads = []
 
         for segment in self.data.segments:
@@ -131,6 +131,6 @@ class ControllerConfHandler(ConfHandler):
 
         for t in threads:
             t.join()
-        
+
 
         return self.children
