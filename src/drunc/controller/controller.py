@@ -105,8 +105,34 @@ class Controller(ControllerServicer):
             data = self.configuration.data.controller.fsm,
         )
 
+        from kafkaopmon.OpMonPublisher import OpMonPublisher
+
+        if self.configuration.session.opmon_uri:
+            opmon_path = self.configuration.session.opmon_uri.path
+            opmon_type = self.configuration.session.opmon_uri.type
+
+            self.log.info(f'OpMon path {opmon_path} and type {opmon_type} is enabled')
+
+            if '/' in opmon_path:
+                opmon_bootstrap, opmon_topic = opmon_path.split('/', 1)
+            else:
+                opmon_bootstrap = opmon_path
+                opmon_topic = 'opmon_stream'
+
+            self.opmon_publisher = OpMonPublisher(
+                default_topic=opmon_topic,
+                bootstrap=opmon_bootstrap
+            )
+
+        else:
+            self.opmon_publisher = OpMonPublisher(
+                default_topic='opmon_stream',
+                bootstrap='monkafka.cern.ch:30092'  
+        )
+
         self.stateful_node = StatefulNode(
             fsm_configuration = fsmch,
+            publisher = self.opmon_publisher,
             broadcaster = self.broadcast_service
         )
 
