@@ -57,7 +57,7 @@ class MissingArgumentValue(FSMException):
     """Raised when a mandatory argument is not provided for a transition"""
 
     def __init__(self):
-        self.message = f"A passed argument does not have an associated value, arguments are key-value pairs."
+        self.message = "A passed argument does not have an associated value, arguments are key-value pairs."
         super().__init__(self.message)
 
 
@@ -155,7 +155,7 @@ class EnableDFOFailed(FSMException):
 
 class CannotGetSoftwareVersion(FSMException):
     def __init__(self):
-        self.message = f"RunRegistryDB: dunedaq version not in the variable env DUNE_DAQ_BASE_RELEASE! Exit drunc and export DUNE_DAQ_BASE_RELEASE=dunedaq-vX.XX.XX\n"
+        self.message = 'RunRegistryDB: dunedaq version not in the variable env DUNE_DAQ_BASE_RELEASE! Exit drunc and export DUNE_DAQ_BASE_RELEASE=dunedaq-vX.XX.XX\n'
         super().__init__(self.message)
 
 
@@ -163,3 +163,12 @@ class CannotSendElisaMessage(FSMException):
     def __init__(self, data):
         self.message = f"Cannot send message to ELisA because {data}. Do it manually at https://np-vd-coldbox-elog.app.cern.ch or https://pdsp-elog.app.cern.ch!"
         super().__init__(self.message)
+
+class DotDruncJsonNotFound(FSMException):
+    pass
+
+class DotDruncJsonIncorrectFormat(FSMException):
+    pass
+
+class InvalidRunType(FSMException):
+    pass

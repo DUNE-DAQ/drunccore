@@ -1,21 +1,22 @@
+import click
 import conffwk
 import getpass
 import signal
-import os
-import click
-from rich import print as rprint
+from drunc.utils.utils import get_logger, setup_root_logger
 from sh import Command
 
-from drunc.utils.configuration import find_configuration
-from drunc.utils.utils import expand_path
-from drunc.process_manager.ssh_process_manager import on_parent_exit
 from drunc.process_manager.oks_parser import collect_apps
+from drunc.process_manager.ssh_process_manager import on_parent_exit
+from drunc.utils.configuration import find_configuration
+
 
 def validate_ssh_connection(configuration:str, session_name:str):
+    setup_root_logger("ERROR")
+    log = get_logger("validate_ssh_connection.app", rich_handler=True)
     conf = find_configuration(configuration)
     db = conffwk.Configuration(f"oksconflibs:{conf}")
     session_dal = db.get_dal(class_name="Session", uid=session_name)
-    disabled_applications = [app.id for app in session_dal.disabled]
+    # disabled_applications = [app.id for app in session_dal.disabled]
     hosts = set()
 
     for app in collect_apps(db, session_dal, session_dal.segment, {}):
@@ -34,9 +35,10 @@ def validate_ssh_connection(configuration:str, session_name:str):
                 _preexec_fn = on_parent_exit(signal.SIGTERM)
             )
             process.wait()
-            rprint(f"SSH connection established successfully on host [green]{user_host}[/green]")
+            log.info(f"SSH connection established successfully on host [green]{user_host}[/green]")
         except Exception as e:
-            rprint(f"Failed to SSH onto host [red]{user_host}[/red]. Exception raised: {str(e)}")
+            log.error(f"Failed to SSH onto host [red]{user_host}[/red]")
+            log.exception(e)
 
 @click.command()
 @click.argument('configuration', type=str, nargs=1)
