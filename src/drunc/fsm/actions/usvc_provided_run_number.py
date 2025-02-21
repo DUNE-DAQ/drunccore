@@ -31,14 +31,14 @@ class UsvcProvidedRunNumber(FSMAction):
 
         _session = _context.session
         _name = _context.name
-        
-        _context.opmon_publisher.publish(
+        if _context.opmon_publisher:
+            _context.opmon_publisher.publish(
                 session=_session,
                 application=_name,
                 message = RunInfo(
-                    run_type=run_type, 
+                    run_type=run_type,
                     trigger_rate=trigger_rate,
-                    run_number=_input_data["run"], 
+                    run_number=_input_data["run"],
                     disable_data_storage=disable_data_storage
                     )
             )

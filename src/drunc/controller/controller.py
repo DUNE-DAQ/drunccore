@@ -30,6 +30,8 @@ from druncschema.generic_pb2 import PlainText, Stacktrace
 from druncschema.request_response_pb2 import CommandDescription, Description, Response, ResponseFlag
 from druncschema.token_pb2 import Token
 
+from kafkaopmon.OpMonPublisher import OpMonPublisher
+
 
 class ControllerActor:
     def __init__(self, token:Optional[Token]=None):
@@ -105,7 +107,7 @@ class Controller(ControllerServicer):
             data = self.configuration.data.controller.fsm,
         )
 
-        from kafkaopmon.OpMonPublisher import OpMonPublisher
+        self.opmon_publisher = None
 
         if self.configuration.session.opmon_uri:
             opmon_path = self.configuration.session.opmon_uri.path
@@ -119,16 +121,12 @@ class Controller(ControllerServicer):
                 opmon_bootstrap = opmon_path
                 opmon_topic = 'opmon_stream'
 
-            self.opmon_publisher = OpMonPublisher(
-                default_topic=opmon_topic,
-                bootstrap=opmon_bootstrap
-            )
+            if opmon_type == 'stream':
+                self.opmon_publisher = OpMonPublisher(
+                    default_topic=opmon_topic,
+                    bootstrap=opmon_bootstrap
+                )
 
-        else:
-            self.opmon_publisher = OpMonPublisher(
-                default_topic='opmon_stream',
-                bootstrap='monkafka.cern.ch:30092'  
-        )
 
         self.stateful_node = StatefulNode(
             fsm_configuration = fsmch,

@@ -1,7 +1,6 @@
 from drunc.fsm.core import FSMAction
 from drunc.utils.configuration import find_configuration
 from drunc.fsm.exceptions import EnableDFOFailed
-from drunc.exceptions import DruncSetupException
 
 
 class EnableDFO(FSMAction):
@@ -25,8 +24,8 @@ class EnableDFO(FSMAction):
         for dfo in dfos:
             if dfo.id == dfo_name:
                 dfo_found = True
-                break            
-            
+                break
+
         if not dfo_found:
             raise EnableDFOFailed(dfo_name)
 
