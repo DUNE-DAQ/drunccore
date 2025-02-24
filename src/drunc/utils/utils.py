@@ -13,6 +13,7 @@ import random
 from rich.console import Console
 from rich.theme import Theme
 from rich.logging import RichHandler
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 import re
 from requests import delete, get, patch, post
 import sh
@@ -83,18 +84,18 @@ def root_logger_is_setup(log_level:int) -> bool:
         return True
     return False
 
-def setup_root_logger(log_level:str) -> None:
+def setup_root_logger(log_level:str) -> logging.Logger:
     log_level = log_level.upper()
     if log_level not in log_levels.keys():
         raise DruncSetupException(f"Unrecognised log level, should be one of {log_levels.keys()}")
     log_level = log_levels[log_level]
 
-    if root_logger_is_setup(log_level):
-        return
+    logger_was_setup = root_logger_is_setup(log_level)
 
     root_logger = logging.getLogger("drunc")
-    root_logger.debug('Setting up root logger "drunc"')
     root_logger.setLevel(log_level)
+    if logger_was_setup:
+        return root_logger
 
     # And then manually tweak 'sh.command' logger. Sigh.
     sh_command_level = log_level if log_level > logging.INFO else (log_level+10)
@@ -109,6 +110,7 @@ def setup_root_logger(log_level:str) -> None:
     kafka_command_logger.setLevel(kafka_command_level)
     for handler in kafka_command_logger.handlers:
         handler.setLevel(kafka_command_level)
+    return root_logger
 
 def get_logger(logger_name:str, log_file_path:str = None, override_log_file:bool = False, rich_handler:bool = False):
     logger_dict = logging.Logger.manager.loggerDict
@@ -224,7 +226,6 @@ def run_coroutine(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         loop = asyncio.get_event_loop()
-
         ret = None
 
         main_task = asyncio.ensure_future(f(*args, **kwargs))
@@ -442,7 +443,6 @@ def get_control_type_and_uri_from_connectivity_service(
     elapsed = 0
 
     if progress_bar:
-        from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
         with Progress(
             SpinnerColumn(),
