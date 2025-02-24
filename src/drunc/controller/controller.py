@@ -698,27 +698,31 @@ class Controller(ControllerServicer):
     @in_control
     @unpack_request_data_to(pass_token=True) # 3rd step
     def recompute_status(self, token:Token) -> Response:
-        from drunc.utils.grpc_utils import unpack_any
 
-        pre_statuses = {n.name: n.get_status(token) for n in self.children_nodes}
+        pre_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
         children_names_to_execute = [n.name for n in self.children_nodes]
 
-        for n, s in pre_statuses.items():
+        for s in pre_statuses:
             if s.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
-                self.logger.warning(f"Failed to get an answer from {n}")
-                children_names_to_execute.remove(n)
+                self.log.warning(f"Failed to get an answer from {s.name}")
+                children_names_to_execute.remove(s.name)
                 continue
 
             pre_statuses_decoded = None
             try:
                 pre_statuses_decoded = unpack_any(s.data, Status)
             except UnpackingError as e:
-                self.logger.warning(f"Failed to decode status for {n}: {e}")
-                children_names_to_execute.remove(n)
+                self.log.warning(f"Failed to decode status for {s.name}: {e}")
+                children_names_to_execute.remove(s.name)
                 continue
 
             if not pre_statuses_decoded.included:
-                children_names_to_execute.remove(n)
+                children_names_to_execute.remove(s.name)
                 continue
 
         children_to_execute = [n for n in self.children_nodes if n.name in children_names_to_execute]
@@ -733,9 +737,9 @@ class Controller(ControllerServicer):
 
             try:
                 post_statuses += [unpack_any(r.data, Status)]
-                self.logger.info(f"Decoded status: {post_statuses[-1]}")
+                self.log.info(f"Decoded status: {post_statuses[-1]}")
             except UnpackingError as e:
-                self.logger.warning(f"Failed to decode status for: {e}")
+                self.log.warning(f"Failed to decode status for: {e}")
                 error = True
 
         self_in_error = any(s.in_error for s in post_statuses)
@@ -748,14 +752,21 @@ class Controller(ControllerServicer):
             self.stateful_node.force_set_node_operational_state(children_state)
             self.stateful_node.force_set_node_operational_sub_state(children_state)
 
-        from drunc.controller.utils import get_status_message
         status = get_status_message(self.stateful_node)
+
+        post_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
+
         return Response (
             name = self.name,
             token = token,
             data = pack_to_any(status),
             flag = ResponseFlag.EXECUTED_SUCCESSFULLY,
-            children = [n.get_status(token) for n in self.children_nodes]
+            children = post_statuses
         )
 
 
