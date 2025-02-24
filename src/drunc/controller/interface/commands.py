@@ -53,7 +53,6 @@ def status(obj:ControllerContext) -> None:
 def recompute_status(obj:ControllerContext) -> None:
     statuses = obj.get_driver('controller').recompute_status()
     descriptions = obj.get_driver('controller').describe()
-    from drunc.controller.interface.shell_utils import print_status_table
     print_status_table(obj, statuses, descriptions)
 
 
@@ -85,14 +84,16 @@ def connect(obj:ControllerContext, controller_address:str, force:bool) -> None:
 @click.option('-f', '--force', is_flag=True, help='Confirm the disconnect')
 @click.pass_obj
 def disconnect(obj:ControllerContext, force:bool):
+    log = get_logger(**logger_params)
+
     if not obj.has_driver('controller'):
-        obj.info('You are not connected to any controller.')
+        log.info('You are not connected to any controller.')
         return
 
     driver = obj.get_driver("controller")
 
     if not force:
-        obj.info(f'''
+        log.info(f'''
 [red]You are about to disconnect from the {driver.name} controller.[/red]
 
 To reconnect to it, you will need to issue the following command:
