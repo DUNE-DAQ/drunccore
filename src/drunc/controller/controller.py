@@ -131,7 +131,8 @@ class Controller(ControllerServicer):
         self.stateful_node = StatefulNode(
             fsm_configuration = fsmch,
             publisher = self.opmon_publisher,
-            broadcaster = self.broadcast_service
+            name = name,
+            session = session
         )
 
         dach = DummyAuthoriserConfHandler(

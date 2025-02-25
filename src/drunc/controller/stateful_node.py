@@ -3,14 +3,14 @@ from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from typing import Optional
 
-from drunc.broadcast.server.broadcast_sender import BroadcastSender
 from drunc.exceptions import DruncCommandException
 from drunc.fsm.core import FSM
 from drunc.fsm.exceptions import InvalidTransition
 from drunc.fsm.utils import decode_fsm_arguments
 from drunc.utils.utils import get_logger
 
-from druncschema.broadcast_pb2 import BroadcastType
+from druncschema.opmon_pb2 import Status
+
 
 
 class Observed:
@@ -20,30 +20,30 @@ class Observed:
 
     @value.setter
     def value(self, value):
-        if self._broadcast_on_change is None or self._broadcast_key is None:
-            self._value = value
-            return
+        # if self._broadcast_on_change is None or self._broadcast_key is None:
+        #     self._value = value
+        #     return
 
-        self._broadcast_on_change.broadcast(
-            message = f'Changing {self._name} from {self._value} to {value}',
-            btype = self._broadcast_key,
-        )
-
+        # self._broadcast_on_change.broadcast(
+        #     message = f'Changing {self._name} from {self._value} to {value}',
+        #     btype = self._broadcast_key,
+        # )
         self._value = value
+        if self.stateful_node:
+            self.stateful_node.log.info(f"{self._name} changed to {value}")
+            self.stateful_node.publish_state()
+
+        
 
     def __init__(
             self,
             name:str,
-            broadcast_on_change:Optional[BroadcastSender]=None,
-            opmon_publisher:Optional[OpMonPublisher]=None,
-            broadcast_key=None, # Optional[BroadcastType]=None
+            stateful_node = None,
             initial_value:Optional[str]=None
         ):
         self._name = name
-        self._broadcast_on_change = broadcast_on_change
-        self._opmon_publisher = opmon_publisher
+        self.stateful_node = stateful_node
         self._value = initial_value
-        self._broadcast_key = broadcast_key
 
 
 class OperationalState(Observed):
@@ -52,6 +52,7 @@ class OperationalState(Observed):
             name = 'operational_state',
             **kwargs
         )
+       
 
 
 class ErrorState(Observed):
@@ -94,39 +95,43 @@ class TransitionExecuting(StatefulNodeException):
         super().__init__('A transition is already executing')
 
 class StatefulNode(abc.ABC):
-    def __init__(self, fsm_configuration, publisher:Optional[OpMonPublisher] = None, broadcaster:Optional[BroadcastSender]=None):
-
-        self.broadcast = broadcaster
+    def __init__(self, fsm_configuration, publisher:Optional[OpMonPublisher] = None, session: str = "", name: str = ""):
 
         self.publisher = publisher
-
+        self.session = session 
+        self.name = name       
 
         self.__fsm = FSM(fsm_configuration)
         self.log = get_logger('controller.StatefulNode')
         self.__operational_state = OperationalState(
-            broadcast_on_change = self.broadcast,
-            opmon_publisher = self.publisher,
-            broadcast_key = BroadcastType.FSM_STATUS_UPDATE,
+            stateful_node = self,
             initial_value = self.__fsm.initial_state
         )
         self.__operational_sub_state = OperationalState(
-            broadcast_on_change = self.broadcast,
-            opmon_publisher = self.publisher,
-            broadcast_key = BroadcastType.FSM_STATUS_UPDATE,
+            stateful_node = self,
             initial_value = self.__fsm.initial_state
         )
         self.__included = InclusionState(
-            broadcast_on_change = self.broadcast,
-            opmon_publisher = self.publisher,
-            broadcast_key = BroadcastType.STATUS_UPDATE,
+            stateful_node = self,
             initial_value = True
         )
         self.__in_error = ErrorState(
-            broadcast_on_change = self.broadcast,
-            opmon_publisher = self.publisher,
-            broadcast_key = BroadcastType.STATUS_UPDATE,
+            stateful_node = self,
             initial_value = False
         )
+
+    def publish_state(self):
+        if self.publisher is not None:
+            self.publisher.publish(
+                session=self.session,
+                application=self.name,
+                message = Status(
+                    state = self.__operational_state.value,
+                    sub_state = self.__operational_sub_state.value,
+                    in_error = self.__in_error.value,
+                    included = self.__included.value
+                )
+            )
 
     def get_node_operational_state(self):
         return self.__operational_state.value

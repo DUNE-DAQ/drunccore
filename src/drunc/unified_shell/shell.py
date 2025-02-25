@@ -196,7 +196,7 @@ def unified_shell(
     unified_shell_log.debug("Initializing the [green]StatefulNode[/green]")
     stateful_node = StatefulNode(
         fsm_configuration = fsmch,
-        broadcaster = None,
+
     )
 
     unified_shell_log.debug("Retrieving the transitions from the [green]StatefulNode[/green]")
