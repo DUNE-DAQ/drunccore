@@ -2,7 +2,6 @@ import asyncio
 import click
 import getpass
 import grpc
-import socket
 
 from drunc.exceptions import DruncSetupException
 from drunc.process_manager.configuration import get_process_manager_configuration, ProcessManagerConfHandler

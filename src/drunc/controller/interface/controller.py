@@ -3,7 +3,6 @@ import concurrent
 import grpc
 import os
 import signal
-import sys
 
 from drunc.controller.controller import Controller
 from drunc.controller.configuration import ControllerConfHandler
