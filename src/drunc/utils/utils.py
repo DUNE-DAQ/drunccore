@@ -158,10 +158,10 @@ def regex_match(regex, string):
     return re.match(regex, string) is not None
 
 def print_traceback(e): # RETURNTOME - rename to print_console_traceback
-    log = get_logger(
-        logger_name="utils.traceback",
-        rich_handler=True
-    )
+    log = get_logger(logger_name="traceback")
+    drunc_logger = logging.getLogger("drunc")
+    if drunc_logger.handlers == []:
+        create_logger_handler(rich_handler=True)
     log.exception(e)
 
 def get_new_port():

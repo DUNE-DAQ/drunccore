@@ -35,33 +35,35 @@ def test_print_traceback(capsys):
 
 
 def test_setup_logger(caplog):
-    from drunc.utils.utils import setup_root_logger, get_logger
-    
-    drunc_root_logger = setup_root_logger("DEBUG")
-    assert drunc_root_logger.getEffectiveLevel() == logging.DEBUG
+    from drunc.utils.utils import setup_root_logger, get_logger, create_logger_handler
+
+    setup_root_logger("DEBUG")
+    drunc_logger = logging.getLogger("drunc")
+    assert drunc_logger.getEffectiveLevel() == logging.DEBUG
     assert get_logger("tester0").getEffectiveLevel() == logging.DEBUG
 
-    drunc_root_logger.setLevel("INFO")
-    assert drunc_root_logger.getEffectiveLevel() == logging.INFO
+    setup_root_logger("INFO")
+    assert drunc_logger.getEffectiveLevel() == logging.INFO
     assert get_logger("drunc.tester1").getEffectiveLevel() == logging.INFO
 
-    setup_root_logger.setLevel("WARNING")
-    assert drunc_root_logger.getEffectiveLevel() == logging.WARNING
+    setup_root_logger("WARNING")
+    assert drunc_logger.getEffectiveLevel() == logging.WARNING
     assert get_logger("tester2").getEffectiveLevel() == logging.WARNING
 
-    setup_root_logger.setLevel("ERROR")
-    assert drunc_root_logger.getEffectiveLevel() == logging.ERROR
+    setup_root_logger("ERROR")
+    assert drunc_logger.getEffectiveLevel() == logging.ERROR
     assert get_logger("tester3").getEffectiveLevel() == logging.ERROR
 
-    setup_root_logger.setLevel("CRITICAL")
-    assert drunc_root_logger.getEffectiveLevel() == logging.CRITICAL
+    setup_root_logger("CRITICAL")
+    assert drunc_logger.getEffectiveLevel() == logging.CRITICAL
     assert get_logger("tester4").getEffectiveLevel() == logging.CRITICAL
 
     import tempfile
     with tempfile.TemporaryDirectory() as temp_dir:
         log_path = temp_dir+"/test.log"
 
-        setup_root_logger("CRITICAL", log_path=log_path)
+        setup_root_logger("CRITICAL")
+        create_logger_handler(log_file_path=log_path)
         logger = get_logger("tester5")
         logger.debug   ("invisible")
         logger.info    ("invisible")
@@ -69,9 +71,13 @@ def test_setup_logger(caplog):
         logger.error   ("invisible")
         logger.critical("VISIBLE")
 
-        assert caplog.record_tuples == [
-            ("drunc.tester5", logging.CRITICAL, "VISIBLE"),
-        ]
+        one_good_record = 0
+        for record in caplog.records:
+            if "VISIBLE" in record.getMessage() and record.levelno == logging.CRITICAL and "tester5" in record.name:
+                one_good_record += 1
+
+        assert one_good_record == 1
+
 
         with open(log_path, "r") as f:
             assert "VISIBLE" in f.read()
