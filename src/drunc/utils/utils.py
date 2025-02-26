@@ -21,7 +21,6 @@ import socket
 import string
 import sys
 import time
-from rich.text import Text
 from urllib.parse import urlparse
 
 from drunc.connectivity_service.exceptions import ApplicationLookupUnsuccessful
@@ -142,7 +141,7 @@ def create_logger_handler(log_file_path:str = None, rich_handler:bool = False):
         drunc_logger.addHandler(stdHandler)
         function_logger.debug("Added appropriate stream handler to drunc")
 
-    function_logger.debug(f"Finished setting up logger")
+    function_logger.debug("Finished setting up logger")
 
 
 def setup_standard_loggers() -> None:
