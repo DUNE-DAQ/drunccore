@@ -1,7 +1,6 @@
 import asyncio
 import click
 import click_shell
-import getpass
 import logging
 import multiprocessing as mp
 import os
@@ -19,10 +18,9 @@ from drunc.fsm.utils import convert_fsm_transition
 from drunc.process_manager.configuration import get_process_manager_configuration
 from drunc.process_manager.interface.commands import dummy_boot, flush, kill, logs, ps, restart, terminate
 from drunc.process_manager.interface.process_manager import run_pm
-from drunc.process_manager.utils import get_log_path, get_pm_conf_name_from_dir
 from drunc.unified_shell.commands import boot
 from drunc.utils.configuration import find_configuration, OKSKey, parse_conf_url
-from drunc.utils.utils import get_logger, ignore_sigint_sighandler, log_levels, pid_info_str, setup_root_logger, setup_standard_loggers, create_logger_handler, resolve_localhost_and_127_ip_to_network_ip
+from drunc.utils.utils import get_logger, ignore_sigint_sighandler, log_levels, pid_info_str, setup_root_logger, create_logger_handler, resolve_localhost_and_127_ip_to_network_ip
 
 import conffwk
 
@@ -83,6 +81,7 @@ def unified_shell(
                 "pm_address": "localhost:0",
                 "override_logs": override_logs,
                 "log_level": log_level,
+                "log_path": app_log_path,
                 "ready_event": ready_event,
                 "signal_handler": ignore_sigint_sighandler,
                 # sigint gets sent to the PM, so we need to ignore it, otherwise everytime the user ctrl-c on the shell, the PM goes down

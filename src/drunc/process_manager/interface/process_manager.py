@@ -18,14 +18,13 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
     appName = "process_manager"
     pmConfFileName = get_pm_conf_name_from_dir(pm_conf) # Treating the pm conf data filename as the session
 
-    if log_path == None:
-        log_path = get_log_path(
-            user = getpass.getuser(),
-            session_name = pmConfFileName,
-            application_name = appName,
-            override_logs = override_logs,
-            app_log_path = log_path
-        )
+    log_path = get_log_path(
+        user = getpass.getuser(),
+        session_name = pmConfFileName,
+        application_name = appName,
+        override_logs = override_logs,
+        app_log_path = log_path
+    )
     setup_root_logger(log_level)
     log = get_logger(appName)
     create_logger_handler(
