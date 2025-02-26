@@ -17,7 +17,6 @@ _cleanup_coroutines = []
 
 def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_path:str=None, ready_event:bool=None, signal_handler:bool=None, generated_port:bool=None) -> None:
     appName = "process_manager"
-    print(pm_address)
     pmConfFileName = get_pm_conf_name_from_dir(pm_conf) # Treating the pm conf data filename as the session
 
     if log_path == None:
