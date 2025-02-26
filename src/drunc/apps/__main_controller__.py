@@ -1,7 +1,6 @@
 from drunc.controller.interface.controller import controller_cli
 from drunc.utils.utils import get_logger, setup_root_logger
 
-
 def main():
     try:
         controller_cli()

@@ -20,9 +20,12 @@ def broadcasted(cmd):
         # lets not
         log.debug('Entering')
         from druncschema.broadcast_pb2 import BroadcastType
+        msg = f'User \'{request.token.user_name}\' executing \'{cmd.__name__}\''
+
+        log.info(msg)
 
         obj.broadcast(
-            message = f'User \'{request.token.user_name}\' attempting to execute \'{cmd.__name__}\'',
+            message = msg,
             btype = BroadcastType.ACK
         )
 
