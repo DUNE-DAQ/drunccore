@@ -34,7 +34,7 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
         rich_handler = True
     )
 
-    log.info("Running [green]run_pm[/green]")
+    log.debug("Running [green]run_pm[/green]")
     if signal_handler is not None:
         signal_handler()
 
