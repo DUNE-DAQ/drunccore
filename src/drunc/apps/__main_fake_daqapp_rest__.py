@@ -8,8 +8,6 @@ from flask import Flask, Response, request
 from flask_restful import Api, Resource
 import random
 import requests
-import os
-import signal
 import threading
 import time
 from urllib.parse import urlparse
@@ -47,7 +45,7 @@ class AppState:
             )
             response.raise_for_status()
         except Exception as e:
-            self.log.error(f'Couldn\'t send response to response listener')
+            self.log.error('Couldn\'t send response to response listener')
             self.log.exception(e)
 
     def execute_command(self, req_data, answer_port, answer_host, remote_host) -> Response:
