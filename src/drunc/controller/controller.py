@@ -90,6 +90,7 @@ class Controller(ControllerServicer):
 
         self.log = get_logger('controller')
         self.log.info(f'Initialising controller \'{name}\' with session \'{session}\'')
+
         self.configuration = configuration
 
         bsch = BroadcastSenderConfHandler(
