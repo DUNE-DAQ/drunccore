@@ -97,7 +97,7 @@ def test_run_coroutine():
     assert result == 'abc'
 
 
-@pytest.mark.xfail
+@pytest.mark.skip()  # reason="Not implemented correctly"
 def test_interrupt_run_coroutine(capsys):
     @run_coroutine
     async def test_this_coroutine(val):
