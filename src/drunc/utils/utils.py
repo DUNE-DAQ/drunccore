@@ -13,6 +13,7 @@ import random
 from rich.console import Console
 from rich.theme import Theme
 from rich.logging import RichHandler
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 import re
 from requests import delete, get, patch, post
 import sh
@@ -72,7 +73,7 @@ class LoggingFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_root_logger(log_level:str) -> None:
+def setup_root_logger(log_level:str) -> logging.Logger:
     log_level = log_level.upper()
     if log_level not in log_levels.keys():
         raise DruncSetupException(f"Unrecognised log level, should be one of {log_levels.keys()}")
@@ -80,6 +81,7 @@ def setup_root_logger(log_level:str) -> None:
 
     root_logger = logging.getLogger("drunc")
     root_logger.setLevel(log_level)
+
 
     # And then manually tweak 'sh.command' logger. Sigh.
     sh_command_level = log_level if log_level > logging.INFO else (log_level+10)
@@ -94,6 +96,7 @@ def setup_root_logger(log_level:str) -> None:
     kafka_command_logger.setLevel(kafka_command_level)
     for handler in kafka_command_logger.handlers:
         handler.setLevel(kafka_command_level)
+    return root_logger
 
 
 def get_logger(logger_name:str, *args, **kwargs):
@@ -180,7 +183,6 @@ def run_coroutine(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         loop = asyncio.get_event_loop()
-
         ret = None
 
         main_task = asyncio.ensure_future(f(*args, **kwargs))
@@ -382,9 +384,8 @@ def get_control_type_and_uri_from_cli(CLAs:list[str]) -> ControlType:
     raise DruncSetupException("Could not find if the child was controlled by gRPC or a REST API")
 
 
-from drunc.connectivity_service.client import ConnectivityServiceClient
 def get_control_type_and_uri_from_connectivity_service(
-    connectivity_service:ConnectivityServiceClient,
+    connectivity_service,
     name:str,
     timeout:int=10, # seconds
     retry_wait:float=0.1, # seconds
@@ -399,7 +400,6 @@ def get_control_type_and_uri_from_connectivity_service(
     elapsed = 0
 
     if progress_bar:
-        from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn, TimeElapsedColumn
 
         with Progress(
             SpinnerColumn(),
