@@ -3,7 +3,7 @@ import click
 import getpass
 import grpc
 import socket
-
+import os
 from drunc.exceptions import DruncSetupException
 from drunc.process_manager.configuration import get_process_manager_configuration, ProcessManagerConfHandler
 from drunc.process_manager.process_manager import ProcessManager
@@ -28,7 +28,7 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
             app_log_path = log_path
         )
     process_manager_logger = get_logger(
-        logger_name = appName, 
+        logger_name = appName,
         log_file_path = log_path,
         override_log_file = override_logs,
         rich_handler = True
@@ -49,6 +49,8 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
         type = conf_type,
         data = conf_path
     )
+    for key, value in pmch.data.environment.items():
+        os.environ[key] = value
 
     pm = ProcessManager.get(pmch, name="process_manager")
     log.debug("Setup up ProcessManager")
