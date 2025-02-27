@@ -279,6 +279,8 @@ class SSHProcessManager(ProcessManager):
                 self.process_store[uuid] = self.ssh (
                     *arguments,
                     # _out=partial(self._process_children_logs, uuid),
+                    _out=self.log.debug,
+                    _err=self.log.error,
                     _bg=True,
                     _bg_exc=False,
                     _new_session=True,

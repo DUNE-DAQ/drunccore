@@ -65,9 +65,21 @@ def test_setup_logger(caplog):
         logger.warning ("invisible")
         logger.error   ("invisible")
         logger.critical("VISIBLE")
-        assert caplog.record_tuples == [('drunc.tester5:                               ', logging.CRITICAL, 'VISIBLE')]
+        good_record = 0
+        bad_record = 0
+
+        for record in caplog.records:
+            if "VISIBLE" in record.getMessage() and record.levelno == logging.CRITICAL and "tester5" in record.name:
+                good_record += 1
+            else:
+                bad_record += 1
+
+        assert good_record == 1
+        assert bad_record == 0
+
         with open(log_path, "r") as f:
             assert "VISIBLE" in f.read()
+            assert "invisible" not in f.read()
 
 
 def test_get_new_port():

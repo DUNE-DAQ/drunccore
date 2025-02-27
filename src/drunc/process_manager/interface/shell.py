@@ -6,7 +6,7 @@ import os
 
 from drunc.process_manager.interface.commands import boot, dummy_boot, flush, kill, logs, ps, restart, terminate
 from drunc.utils.grpc_utils import ServerUnreachable
-from drunc.utils.utils import CONTEXT_SETTINGS, get_logger, log_levels, setup_root_logger, setup_standard_loggers, validate_command_facility
+from drunc.utils.utils import CONTEXT_SETTINGS, get_logger, log_levels, validate_command_facility, setup_root_logger, create_logger_handler
 
 
 @click_shell.shell(prompt='drunc-process-manager > ', chain=True, context_settings=CONTEXT_SETTINGS, hist_file=os.path.expanduser('~')+'/.drunc-pm-shell.history')
@@ -15,7 +15,9 @@ from drunc.utils.utils import CONTEXT_SETTINGS, get_logger, log_levels, setup_ro
 @click.pass_context
 def process_manager_shell(ctx, process_manager_address:str, log_level:str) -> None:
     setup_root_logger(log_level)
-    setup_standard_loggers()
+    process_manager_shell_log = get_logger("process_manager.shell")
+    create_logger_handler(rich_handler = True)
+
     ctx.obj.reset(address = process_manager_address)
 
     try:

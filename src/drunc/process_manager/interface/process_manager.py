@@ -2,14 +2,13 @@ import asyncio
 import click
 import getpass
 import grpc
-import socket
 
 from drunc.exceptions import DruncSetupException
 from drunc.process_manager.configuration import get_process_manager_configuration, ProcessManagerConfHandler
 from drunc.process_manager.process_manager import ProcessManager
 from drunc.process_manager.utils import get_log_path, get_pm_conf_name_from_dir
 from drunc.utils.configuration import parse_conf_url
-from drunc.utils.utils import get_logger, log_levels, parent_death_pact, setup_root_logger
+from drunc.utils.utils import get_logger, log_levels, parent_death_pact, create_logger_handler, setup_root_logger, resolve_localhost_and_127_ip_to_network_ip
 
 from druncschema.process_manager_pb2_grpc import add_ProcessManagerServicer_to_server
 
@@ -19,21 +18,19 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
     appName = "process_manager"
     pmConfFileName = get_pm_conf_name_from_dir(pm_conf) # Treating the pm conf data filename as the session
 
-    if log_path == None:
-        log_path = get_log_path(
-            user = getpass.getuser(),
-            session_name = pmConfFileName,
-            application_name = appName,
-            override_logs = override_logs,
-            app_log_path = log_path
-        )
-    process_manager_logger = get_logger(
-        logger_name = appName, 
+    log_path = get_log_path(
+        user = getpass.getuser(),
+        session_name = pmConfFileName,
+        application_name = appName,
+        override_logs = override_logs,
+        app_log_path = log_path
+    )
+    setup_root_logger(log_level)
+    log = get_logger(appName)
+    create_logger_handler(
         log_file_path = log_path,
-        override_log_file = override_logs,
         rich_handler = True
     )
-    log = get_logger(appName + ".shell")
 
     log.debug("Running [green]run_pm[/green]")
     if signal_handler is not None:
@@ -56,6 +53,7 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
     loop = asyncio.get_event_loop()
 
     async def serve(address:str) -> None:
+        address = resolve_localhost_and_127_ip_to_network_ip(address)
         log.debug("serve called")
         if not address:
             raise DruncSetupException('The address on which to expect commands/send status wasn\'t specified')
@@ -66,8 +64,9 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
             generated_port.value = port
 
         await server.start()
-        hostname = socket.gethostname()
-        process_manager_logger.info(f'process_manager communicating through address [bold green]{hostname}:{port}[/bold green]') # bold as part of the address was already formatting, couldn't figure out why
+        #hostname = socket.gethostname()
+        host = address.split(':')[0]
+        log.info(f'process_manager communicating through address [bold green]{host}:{port}[/bold green]') # bold as part of the address was already formatting, couldn't figure out why
 
         async def server_shutdown():
             log.warning("Starting shutdown...")
