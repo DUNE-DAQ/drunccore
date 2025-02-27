@@ -21,7 +21,7 @@ def broadcasted(cmd):
         from druncschema.broadcast_pb2 import BroadcastType
         msg = f'User \'{request.token.user_name}\' executing \'{cmd.__name__}\''
 
-        log.info(msg)
+        log.debug(msg)
 
         obj.broadcast(
             message = msg,
@@ -58,7 +58,7 @@ def broadcasted(cmd):
             message = msg,
             btype = BroadcastType.COMMAND_EXECUTION_SUCCESS
         )
-        log.info(msg)
+        log.debug(msg)
 
         log.debug('Exiting')
         return ret
