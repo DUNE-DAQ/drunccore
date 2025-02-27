@@ -290,7 +290,7 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
     command_desc = search_fsm_command(transition_name, fsm_description.commands)
 
     if command_desc is None:
-        obj.error(f'Command "{transition_name}" does not exist, or is not accessible right now')
+        log.error(f'Command "{transition_name}" does not exist, or is not accessible right now')
         return
 
     try:
