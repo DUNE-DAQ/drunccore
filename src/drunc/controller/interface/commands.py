@@ -5,6 +5,7 @@ from drunc.controller.interface.context import ControllerContext
 from drunc.controller.interface.shell_utils import controller_setup, print_status_table
 from drunc.utils.utils import get_logger
 from druncschema.controller_pb2 import FSMCommand
+from druncschema.generic_pb2 import PlainTextVector
 
 
 logger_params = {
@@ -139,9 +140,10 @@ def who_is_in_charge(obj:ControllerContext) -> None:
         log.info(who.text)
 
 @click.command('include')
+@click.argument('children', type=str, nargs=-1)
 @click.pass_obj
-def include(obj:ControllerContext) -> None:
-    data = FSMCommand(command_name = 'include')
+def include(obj:ControllerContext, children:list[str]) -> None:
+    data = PlainTextVector(text=children)
     result = obj.get_driver('controller').include(arguments=data).data
     if not result: return
     log = get_logger(**logger_params)
@@ -149,9 +151,10 @@ def include(obj:ControllerContext) -> None:
 
 
 @click.command('exclude')
+@click.argument('children', type=str, nargs=-1)
 @click.pass_obj
-def exclude(obj:ControllerContext) -> None:
-    data = FSMCommand(command_name = 'exclude')
+def exclude(obj:ControllerContext, children:list[str]) -> None:
+    data = PlainTextVector(text=children)
     result = obj.get_driver('controller').exclude(arguments=data).data
     if not result: return
     log = get_logger(**logger_params)

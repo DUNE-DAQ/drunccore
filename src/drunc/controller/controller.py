@@ -26,7 +26,7 @@ from druncschema.authoriser_pb2 import ActionType, SystemType
 from druncschema.broadcast_pb2 import BroadcastType
 from druncschema.controller_pb2 import FSMCommand, FSMCommandResponse, FSMResponseFlag, Status
 from druncschema.controller_pb2_grpc import ControllerServicer
-from druncschema.generic_pb2 import PlainText, Stacktrace
+from druncschema.generic_pb2 import PlainText, PlainTextVector, Stacktrace
 from druncschema.request_response_pb2 import CommandDescription, Description, Response, ResponseFlag
 from druncschema.token_pb2 import Token
 
@@ -224,14 +224,14 @@ class Controller(ControllerServicer):
 
             CommandDescription(
                 name = 'include',
-                data_type = ['None'],
+                data_type = ['generic_pb2.PlainText'],
                 help = 'Include self in the current session, if a children is provided, include it and its eventual children',
                 return_type = 'controller_pb2.FSMCommandResponse'
             ),
 
             CommandDescription(
                 name = 'exclude',
-                data_type = ['None'],
+                data_type = ['generic_pb2.PlainText'],
                 help = 'Exclude self in the current session, if a children is provided, exclude it and its eventual children',
                 return_type = 'controller_pb2.FSMCommandResponse'
             ),
@@ -779,11 +779,21 @@ class Controller(ControllerServicer):
         system=SystemType.CONTROLLER
     ) # 2nd step
     @in_control # 3rd step
-    @unpack_request_data_to(pass_token=True) # 4th step
-    def include(self, token:Token) -> PlainText:
-        response_children = self.propagate_to_list('include', command_data=None, token=token, node_to_execute=self.children_nodes)
-        self.stateful_node.include_node()
-        resp = PlainText(text = f'{self.name} and children included')
+    @unpack_request_data_to(PlainTextVector, pass_token=True) # 4th step
+    def include(self, input:PlainTextVector, token:Token) -> PlainText:
+        children_to_include = []
+
+        if input.text == []:
+            children_to_include = self.children_nodes
+            self.stateful_node.include_node()
+            resp = PlainText(text = f'{self.name} and children included')
+
+        else:
+            children_to_include = [n for n in self.children_nodes if n.name in input.text]
+            resp = PlainText(text = f'children included: {", ".join(input.text)}')
+
+        include_request = PlainTextVector(text=[])
+        response_children = self.propagate_to_list('include', command_data=include_request, token=token, node_to_execute=children_to_include)
 
         return Response (
             name = self.name,
@@ -801,11 +811,21 @@ class Controller(ControllerServicer):
         system=SystemType.CONTROLLER
     ) # 2nd step
     @in_control
-    @unpack_request_data_to(pass_token=True) # 3rd step
-    def exclude(self, token:Token) -> Response:
-        response_children = self.propagate_to_list('exclude', command_data=None, token=token, node_to_execute=self.children_nodes)
-        self.stateful_node.exclude_node()
-        resp =  PlainText(text = f'{self.name} and children excluded')
+    @unpack_request_data_to(PlainTextVector, pass_token=True) # 3rd step
+    def exclude(self, input:PlainTextVector, token:Token) -> PlainText:
+        children_to_exclude = []
+
+        if input.text == []:
+            children_to_exclude = self.children_nodes
+            self.stateful_node.exclude_node()
+            resp = PlainText(text = f'{self.name} and children excluded')
+        else:
+            children_to_exclude = [n for n in self.children_nodes if n.name in input.text]
+            resp = PlainText(text = f'children excluded: {", ".join(input.text)}')
+
+        exclude_request = PlainTextVector(text=[])
+        response_children = self.propagate_to_list('exclude', command_data=exclude_request, token=token, node_to_execute=children_to_exclude)
+
         return Response (
             name = self.name,
             token = token,
