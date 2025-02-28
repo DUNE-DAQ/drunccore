@@ -4,5 +4,8 @@
 
     "authoriser": {
         "type": "dummy"
+    },
+    "environment": {
+        "GRPC_ENABLE_FORK_SUPPORT": "false"
     }
 }
