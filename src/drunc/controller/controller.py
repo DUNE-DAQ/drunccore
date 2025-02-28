@@ -633,11 +633,37 @@ class Controller(ControllerServicer):
         children_fsm_command.data = fsm_data
         children_fsm_command.ClearField("children_nodes") # we strip the children node, since when we feed them to the children they are meaningless
 
+        pre_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
+        children_names_to_execute = [n.name for n in self.children_nodes]
+
+        for s in pre_statuses:
+            if s.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
+                self.log.error(f"Failed to get an answer from {s.name}, assuming it is excluded")
+                children_names_to_execute.remove(s.name)
+                continue
+
+            pre_statuses_decoded = None
+            try:
+                pre_statuses_decoded = unpack_any(s.data, Status)
+            except UnpackingError as e:
+                self.log.error(f"Failed to decode status for {s.name}: {e}, assuming it is excluded")
+                children_names_to_execute.remove(s.name)
+                continue
+
+            if not pre_statuses_decoded.included:
+                children_names_to_execute.remove(s.name)
+                continue
+
         response_children = self.propagate_to_list(
             'execute_fsm_command',
             command_data = children_fsm_command,
             token = token,
-            node_to_execute = self.children_nodes,
+            node_to_execute = [n for n in self.children_nodes if n.name in children_names_to_execute],
         )
 
         child_worst_response_flag = ResponseFlag.EXECUTED_SUCCESSFULLY
@@ -710,7 +736,7 @@ class Controller(ControllerServicer):
 
         for s in pre_statuses:
             if s.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
-                self.log.warning(f"Failed to get an answer from {s.name}")
+                self.log.error(f"Failed to get an answer from {s.name}, assuming it is excluded")
                 children_names_to_execute.remove(s.name)
                 continue
 
@@ -718,7 +744,7 @@ class Controller(ControllerServicer):
             try:
                 pre_statuses_decoded = unpack_any(s.data, Status)
             except UnpackingError as e:
-                self.log.warning(f"Failed to decode status for {s.name}: {e}")
+                self.log.error(f"Failed to decode status for {s.name}: {e}, assuming it is excluded")
                 children_names_to_execute.remove(s.name)
                 continue
 
@@ -746,6 +772,10 @@ class Controller(ControllerServicer):
         self_in_error = any(s.in_error for s in post_statuses)
         children_states = set([s.state for s in post_statuses])
         self_inconsistent_state = len(children_states) > 1
+
+        if (self_inconsistent_state or self_in_error) and not self.stateful_node.node_is_in_error():
+            self.log.warning(f"Children states: {children_states}, the state is inconsistent or one node is in error, going to error")
+            self.stateful_node.to_error()
 
         if not error and not self_in_error and not self_inconsistent_state:
             children_state = children_states.pop()
