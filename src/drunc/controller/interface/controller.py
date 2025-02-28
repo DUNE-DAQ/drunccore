@@ -7,7 +7,7 @@ import signal
 from drunc.controller.controller import Controller
 from drunc.controller.configuration import ControllerConfHandler
 from drunc.utils.configuration import find_configuration, OKSKey, parse_conf_url
-from drunc.utils.utils import get_logger, log_levels, resolve_localhost_and_127_ip_to_network_ip, setup_root_logger, validate_command_facility
+from drunc.utils.utils import get_logger, log_levels, resolve_localhost_and_127_ip_to_network_ip, setup_root_logger, validate_command_facility, create_logger_handler
 
 from druncschema.controller_pb2_grpc import add_ControllerServicer_to_server
 from druncschema.token_pb2 import Token
@@ -28,8 +28,14 @@ def controller_cli(boot_configuration:str, command_facility:str, application_nam
     application_name - Name of application, e.g. 'root-controller'\n
     session - Name of session in boot-configuration, e.g. 'local-2x3-config'
     """
+
     setup_root_logger(log_level)
     log = get_logger('controller.controller_cli')
+    create_logger_handler(
+        log_file_path = None,
+        rich_handler = False,
+    )
+
     token = Token(
         user_name = "controller_init_token",
         token = '',
