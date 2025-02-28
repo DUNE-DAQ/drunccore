@@ -2,7 +2,6 @@ import asyncio
 import click
 import getpass
 import grpc
-import socket
 import os
 from drunc.exceptions import DruncSetupException
 from drunc.process_manager.configuration import get_process_manager_configuration, ProcessManagerConfHandler
@@ -24,13 +23,12 @@ def run_pm(pm_conf:str, pm_address:str, log_level:str, override_logs:bool, log_p
         session_name = pmConfFileName,
         application_name = appName,
         override_logs = override_logs,
-        app_log_path = log_path
+        app_log_path = log_path,
     )
-
-    log = get_logger(
-        logger_name = appName,
+    log = get_logger(logger_name = appName)
+    create_logger_handler(
         log_file_path = log_path,
-        rich_handler = True
+        rich_handler = True,
     )
 
     log.debug("Running [green]run_pm[/green]")
