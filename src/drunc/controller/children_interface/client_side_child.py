@@ -141,7 +141,7 @@ class ClientSideChild(ChildNode):
         elif command == 'describe':
             return self.describe(token)
 
-        elif command == 'status':
+        elif command in ['status', 'recompute_status']:
             return self.get_status(token)
 
         if self.state.excluded() and command == 'execute_fsm_command':
@@ -158,6 +158,7 @@ class ClientSideChild(ChildNode):
                 flag = ResponseFlag.EXECUTED_SUCCESSFULLY,
                 children = []
             )
+
 
         # here lies the mother of all the problems
         if command == 'execute_fsm_command':
