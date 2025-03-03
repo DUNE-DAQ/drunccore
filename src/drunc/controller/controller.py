@@ -19,14 +19,14 @@ from drunc.controller.utils import get_detector_name, get_status_message
 from drunc.exceptions import DruncException
 from drunc.fsm.configuration import FSMConfHandler
 from drunc.fsm.utils import convert_fsm_transition
-from drunc.utils.grpc_utils import pack_to_any, unpack_any, unpack_request_data_to
+from drunc.utils.grpc_utils import pack_to_any, unpack_any, unpack_request_data_to, UnpackingError
 from drunc.utils.utils import get_logger
 
 from druncschema.authoriser_pb2 import ActionType, SystemType
 from druncschema.broadcast_pb2 import BroadcastType
 from druncschema.controller_pb2 import FSMCommand, FSMCommandResponse, FSMResponseFlag, Status
 from druncschema.controller_pb2_grpc import ControllerServicer
-from druncschema.generic_pb2 import PlainText, Stacktrace
+from druncschema.generic_pb2 import PlainText, PlainTextVector, Stacktrace
 from druncschema.request_response_pb2 import CommandDescription, Description, Response, ResponseFlag
 from druncschema.token_pb2 import Token
 
@@ -90,6 +90,7 @@ class Controller(ControllerServicer):
 
         self.log = get_logger('controller')
         self.log.info(f'Initialising controller \'{name}\' with session \'{session}\'')
+
         self.configuration = configuration
 
         bsch = BroadcastSenderConfHandler(
@@ -164,10 +165,14 @@ class Controller(ControllerServicer):
             connectivity_service = self.connectivity_service
         )
 
+        children_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
 
-        for child in self.children_nodes:
-            response = child.get_status(token)
-
+        for response in children_statuses:
             status = unpack_any(response.data, Status)
 
             if status.in_error:
@@ -220,14 +225,14 @@ class Controller(ControllerServicer):
 
             CommandDescription(
                 name = 'include',
-                data_type = ['None'],
+                data_type = ['generic_pb2.PlainText'],
                 help = 'Include self in the current session, if a children is provided, include it and its eventual children',
                 return_type = 'controller_pb2.FSMCommandResponse'
             ),
 
             CommandDescription(
                 name = 'exclude',
-                data_type = ['None'],
+                data_type = ['generic_pb2.PlainText'],
                 help = 'Exclude self in the current session, if a children is provided, exclude it and its eventual children',
                 return_type = 'controller_pb2.FSMCommandResponse'
             ),
@@ -462,14 +467,21 @@ class Controller(ControllerServicer):
     @unpack_request_data_to(None, pass_token=True) # 3rd step
     def status(self, token:Token) -> Response:
         status = get_status_message(self.stateful_node)
-        return Response (
-            name = self.name,
+
+        children_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
             token = token,
-            data = pack_to_any(status),
-            flag = ResponseFlag.EXECUTED_SUCCESSFULLY,
-            children = [n.get_status(token) for n in self.children_nodes]
+            node_to_execute = self.children_nodes
         )
 
+        return Response (
+            name = self.name,
+            token = None,
+            data = pack_to_any(status),
+            flag = ResponseFlag.EXECUTED_SUCCESSFULLY,
+            children = children_statuses,
+        )
 
     # ORDER MATTERS!
     @broadcasted # outer most wrapper 1st step
@@ -622,11 +634,37 @@ class Controller(ControllerServicer):
         children_fsm_command.data = fsm_data
         children_fsm_command.ClearField("children_nodes") # we strip the children node, since when we feed them to the children they are meaningless
 
+        pre_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
+        children_names_to_execute = [n.name for n in self.children_nodes]
+
+        for s in pre_statuses:
+            if s.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
+                self.log.error(f"Failed to get an answer from {s.name}, assuming it is excluded")
+                children_names_to_execute.remove(s.name)
+                continue
+
+            pre_statuses_decoded = None
+            try:
+                pre_statuses_decoded = unpack_any(s.data, Status)
+            except UnpackingError as e:
+                self.log.error(f"Failed to decode status for {s.name}: {e}, assuming it is excluded")
+                children_names_to_execute.remove(s.name)
+                continue
+
+            if not pre_statuses_decoded.included:
+                children_names_to_execute.remove(s.name)
+                continue
+
         response_children = self.propagate_to_list(
             'execute_fsm_command',
             command_data = children_fsm_command,
             token = token,
-            node_to_execute = self.children_nodes,
+            node_to_execute = [n for n in self.children_nodes if n.name in children_names_to_execute],
         )
 
         child_worst_response_flag = ResponseFlag.EXECUTED_SUCCESSFULLY
@@ -634,14 +672,14 @@ class Controller(ControllerServicer):
 
         for response_child in response_children:
 
-            if response_child.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
+            if response_child.flag != ResponseFlag.EXECUTED_SUCCESSFULLY :
                 child_worst_response_flag = response_child.flag
                 continue
 
 
             fsm_response = unpack_any(response_child.data, FSMCommandResponse)
 
-            if fsm_response.flag != FSMResponseFlag.FSM_EXECUTED_SUCCESSFULLY:
+            if fsm_response.flag not in [FSMResponseFlag.FSM_EXECUTED_SUCCESSFULLY, FSMResponseFlag.FSM_NOT_EXECUTED_EXCLUDED]:
                 child_worst_fsm_flag = fsm_response.flag
 
 
@@ -663,11 +701,6 @@ class Controller(ControllerServicer):
 
             self.stateful_node.to_error()
 
-        #     return self.construct_error_node_response(
-        #         fsm_command.command_name,
-        #         token,
-        #         cause = FSMResponseFlag.FSM_FAILED,
-        #     )
 
         self_response_fsm_flag = FSMResponseFlag.FSM_EXECUTED_SUCCESSFULLY # self has executed successfully, even if children have not
         fsm_result = FSMCommandResponse(
@@ -690,12 +723,108 @@ class Controller(ControllerServicer):
         action=ActionType.UPDATE,
         system=SystemType.CONTROLLER
     ) # 2nd step
+    @in_control
+    @unpack_request_data_to(pass_token=True) # 3rd step
+    def recompute_status(self, token:Token) -> Response:
+
+        pre_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
+        children_names_to_execute = [n.name for n in self.children_nodes]
+
+        for s in pre_statuses:
+            if s.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
+                self.log.error(f"Failed to get an answer from {s.name}, assuming it is excluded")
+                children_names_to_execute.remove(s.name)
+                continue
+
+            pre_statuses_decoded = None
+            try:
+                pre_statuses_decoded = unpack_any(s.data, Status)
+            except UnpackingError as e:
+                self.log.error(f"Failed to decode status for {s.name}: {e}, assuming it is excluded")
+                children_names_to_execute.remove(s.name)
+                continue
+
+            if not pre_statuses_decoded.included:
+                children_names_to_execute.remove(s.name)
+                continue
+
+        children_to_execute = [n for n in self.children_nodes if n.name in children_names_to_execute]
+        post_recompute_response = self.propagate_to_list('recompute_status', command_data=None, token=token, node_to_execute=children_to_execute)
+        post_statuses = []
+
+        error = False
+        for r in post_recompute_response:
+            if r.flag != ResponseFlag.EXECUTED_SUCCESSFULLY:
+                error = True
+                continue
+
+            try:
+                post_statuses += [unpack_any(r.data, Status)]
+                self.log.info(f"Decoded status: {post_statuses[-1]}")
+            except UnpackingError as e:
+                self.log.warning(f"Failed to decode status for: {e}")
+                error = True
+
+        self_in_error = any(s.in_error for s in post_statuses)
+        children_states = set([s.state for s in post_statuses])
+        self_inconsistent_state = len(children_states) > 1
+
+        if (self_inconsistent_state or self_in_error) and not self.stateful_node.node_is_in_error():
+            self.log.warning(f"Children states: {children_states}, the state is inconsistent or one node is in error, going to error")
+            self.stateful_node.to_error()
+
+        if not error and not self_in_error and not self_inconsistent_state:
+            children_state = children_states.pop()
+            self.stateful_node.resolve_error()
+            self.stateful_node.force_set_node_operational_state(children_state)
+            self.stateful_node.force_set_node_operational_sub_state(children_state)
+
+        status = get_status_message(self.stateful_node)
+
+        post_statuses = self.propagate_to_list(
+            'status',
+            command_data = None,
+            token = token,
+            node_to_execute = self.children_nodes
+        )
+
+        return Response (
+            name = self.name,
+            token = token,
+            data = pack_to_any(status),
+            flag = ResponseFlag.EXECUTED_SUCCESSFULLY,
+            children = post_statuses
+        )
+
+
+
+    # ORDER MATTERS!
+    @broadcasted # outer most wrapper 1st step
+    @authentified_and_authorised(
+        action=ActionType.UPDATE,
+        system=SystemType.CONTROLLER
+    ) # 2nd step
     @in_control # 3rd step
-    @unpack_request_data_to(pass_token=True) # 4th step
-    def include(self, token:Token) -> PlainText:
-        response_children = self.propagate_to_list('include', command_data=None, token=token, node_to_execute=self.children_nodes)
-        self.stateful_node.include_node()
-        resp = PlainText(text = f'{self.name} and children included')
+    @unpack_request_data_to(PlainTextVector, pass_token=True) # 4th step
+    def include(self, input:PlainTextVector, token:Token) -> PlainText:
+        children_to_include = []
+
+        if input.text == []:
+            children_to_include = self.children_nodes
+            self.stateful_node.include_node()
+            resp = PlainText(text = f'{self.name} and children included')
+
+        else:
+            children_to_include = [n for n in self.children_nodes if n.name in input.text]
+            resp = PlainText(text = f'children included: {", ".join(input.text)}')
+
+        include_request = PlainTextVector(text=[])
+        response_children = self.propagate_to_list('include', command_data=include_request, token=token, node_to_execute=children_to_include)
 
         return Response (
             name = self.name,
@@ -713,11 +842,21 @@ class Controller(ControllerServicer):
         system=SystemType.CONTROLLER
     ) # 2nd step
     @in_control
-    @unpack_request_data_to(pass_token=True) # 3rd step
-    def exclude(self, token:Token) -> Response:
-        response_children = self.propagate_to_list('exclude', command_data=None, token=token, node_to_execute=self.children_nodes)
-        self.stateful_node.exclude_node()
-        resp =  PlainText(text = f'{self.name} and children excluded')
+    @unpack_request_data_to(PlainTextVector, pass_token=True) # 3rd step
+    def exclude(self, input:PlainTextVector, token:Token) -> PlainText:
+        children_to_exclude = []
+
+        if input.text == []:
+            children_to_exclude = self.children_nodes
+            self.stateful_node.exclude_node()
+            resp = PlainText(text = f'{self.name} and children excluded')
+        else:
+            children_to_exclude = [n for n in self.children_nodes if n.name in input.text]
+            resp = PlainText(text = f'children excluded: {", ".join(input.text)}')
+
+        exclude_request = PlainTextVector(text=[])
+        response_children = self.propagate_to_list('exclude', command_data=exclude_request, token=token, node_to_execute=children_to_exclude)
+
         return Response (
             name = self.name,
             token = token,

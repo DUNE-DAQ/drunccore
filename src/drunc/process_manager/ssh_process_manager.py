@@ -162,7 +162,7 @@ class SSHProcessManager(ProcessManager):
                 f'-{nlines}',
                 logfile,
             ]
-            self._log.debug(f"cmd: {cmd}")
+            self.log.debug(f"cmd: {cmd}")
             arguments = [user_host, "-tt", "-o StrictHostKeyChecking=no"] + cmd
             self.ssh (
                 *arguments,
@@ -279,6 +279,8 @@ class SSHProcessManager(ProcessManager):
                 self.process_store[uuid] = self.ssh (
                     *arguments,
                     # _out=partial(self._process_children_logs, uuid),
+                    _out=self.log.debug,
+                    _err=self.log.error,
                     _bg=True,
                     _bg_exc=False,
                     _new_session=True,
