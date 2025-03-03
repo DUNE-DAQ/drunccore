@@ -11,7 +11,7 @@ Reconnects to a controller
 Disconnects from the current controller.
 
 ## `exclude` (`include`)
-`exclude`s (`include`s) the current `controller` and all of its children from executing `fsm` commands.
+`exclude`s (`include`s) the current `controller` and all of its children from executing `fsm` commands. You can specify one or more children to the controller, and it will exclude these.
 
 ## `conf`, `start`, `enable-triggers`, etc
 These commands are generated automatically from the controller, which in turns comes from its configuration. If a transition has an argument or an option needed, you can access it via the command help:
