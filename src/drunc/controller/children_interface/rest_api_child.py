@@ -9,6 +9,7 @@ import socket
 import socks
 import threading
 import time
+import urllib3
 from typing import NoReturn
 
 from drunc.controller.children_interface.client_side_child import ClientSideChild
@@ -281,7 +282,7 @@ class AppCommander:
                     'https': f'socks5h://{self.response_host}:{self.response_port}'
                 } if self.proxy_host else None
             )
-        except requests.ConnectionError|requests.MaxRetryError:
+        except requests.ConnectionError|urllib3.exceptions.MaxRetryError:
             self.log.error(f'Connection error to {self.app_url}')
             raise CouldnotSendCommand(f'Connection error to {self.app_url}')
 
