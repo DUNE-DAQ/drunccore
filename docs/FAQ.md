@@ -61,6 +61,67 @@ stop-trigger-sources
 
 Note, if it's a controller that has crashed, there is no way to exclude that child from the `root-controller` (so you can `exit` to kill everything).
 
+## One of my application crashed/failed during a transition
+The best way to get out of this is to exclude the application/segment that got into error.
+Let's say you find yourself in this situation:
+```
+drunc-unified-shell > status
+                                                local-1x1-config status
+┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Name                   ┃ Info      ┃ State      ┃ Substate      ┃ In error ┃ Included ┃ Endpoint                    ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ root-controller        │           │ configured │ configured    │ No       │ Yes      │ grpc://131.225.193.20:45817 │
+│   hsi-fake-controller  │           │ configured │ configured    │ Yes      │ Yes      │ grpc://131.225.193.20:46009 │
+│     hsi-fake-to-tc-app │           │ initial    │ executing_cmd │ Yes      │ Yes      │ rest://131.225.193.20:49359 │
+│     hsi-fake-01        │           │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:42045 │
+│   ru-controller        │           │ configured │ configured    │ No       │ Yes      │ grpc://131.225.193.20:45185 │
+│     ru-01              │ conn apa1 │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:55821 │
+│   trg-controller       │           │ configured │ configured    │ No       │ Yes      │ grpc://131.225.193.20:38205 │
+│     mlt                │           │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:58095 │
+│     tc-maker-1         │           │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:33781 │
+│   df-controller        │           │ configured │ configured    │ No       │ Yes      │ grpc://131.225.193.20:38587 │
+│     dfo-01             │           │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:51289 │
+│     tp-stream-writer   │           │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:40975 │
+│     df-01              │           │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:36373 │
+└────────────────────────┴───────────┴────────────┴───────────────┴──────────┴──────────┴─────────────────────────────┘
+```
+You can always connect to a different controller using the `connect` command:
+```
+drunc-unified-shell > connect grpc://131.225.193.20:46009
+[2025/03/03 10:31:03] INFO       commands.py:68                 drunc.controller.interface:                   Already connected to a controller (root-controller.local-1x1-config@131.225.193.20:45817)
+Do you want to disconnect from it before? [y/N]: y
+[2025/03/03 10:31:03] INFO       commands.py:71                 drunc.controller.interface:                   Disconnecting...
+[2025/03/03 10:31:03] INFO       shell_utils.py:283             drunc.utils.ShellContext:                     You will not be able to issue command to root-controller.local-1x1-config anymore.
+[2025/03/03 10:31:03] INFO       shell_utils.py:285             drunc.utils.ShellContext:                     Driver 'controller' has been deleted.
+[2025/03/03 10:31:03] INFO       commands.py:74                 drunc.controller.interface:                   Connecting this shell to the controller at grpc://131.225.193.20:46009...
+⠋ Trying to talk to the controller... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -:--:-- 0:00:00
+drunc-unified-shell >
+```
+Then, you can `exclude` that application:
+```
+drunc-unified-shell > exclude hsi-fake-to-tc-app
+[2025/03/03 10:31:27] INFO       commands.py:160                drunc.controller.interface:                   children excluded: hsi-fake-to-tc-app
+```
+Make the controller come out of error:
+```
+drunc-unified-shell > recompute-status
+                                            local-1x1-config status
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Name                 ┃ Info ┃ State      ┃ Substate      ┃ In error ┃ Included ┃ Endpoint                    ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ hsi-fake-controller  │      │ configured │ configured    │ No       │ Yes      │ grpc://131.225.193.20:46009 │
+│   hsi-fake-to-tc-app │      │ initial    │ executing_cmd │ Yes      │ No       │ rest://131.225.193.20:49359 │
+│   hsi-fake-01        │      │ configured │ idle          │ No       │ Yes      │ rest://131.225.193.20:42045 │
+└──────────────────────┴──────┴────────────┴───────────────┴──────────┴──────────┴─────────────────────────────┘
+[2025/03/03 10:31:35] INFO       shell_utils.py:303             drunc.utils.ShellContext:                     Current FSM status is configured. Available transitions are start, scrap.
+```
+Then, reconnect to the top controller:
+```
+connect grpc://131.225.193.20:45817
+```
+You can now issue `status`, or `recompute_status` and continue working. Of course, none of the command will be propagated to the application that was excluded (in this case `hsi-fake-to-tc-app`).
+
+
 ## So empty...
 If you have a question, please reach out to developers or fill an issue [here](https://github.com/DUNE-DAQ/drunc/issues).
 
