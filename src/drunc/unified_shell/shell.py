@@ -9,7 +9,7 @@ import sys
 from urllib.parse import urlparse
 
 from drunc.controller.configuration import ControllerConfHandler
-from drunc.controller.interface.commands import connect, exclude, include, status, surrender_control, take_control, wait, who_am_i, who_is_in_charge
+from drunc.controller.interface.commands import connect, disconnect, exclude, include, status, recompute_status,  surrender_control, take_control, wait, who_am_i, who_is_in_charge
 from drunc.controller.interface.shell_utils import generate_fsm_command
 from drunc.controller.stateful_node import StatefulNode
 from drunc.exceptions import DruncSetupException
@@ -193,7 +193,9 @@ def unified_shell(
         ctx.command.add_command(*generate_fsm_command(ctx.obj, transition, controller_name))
 
     ctx.command.add_command(status, 'status')
+    ctx.command.add_command(recompute_status, 'recompute-status')
     ctx.command.add_command(connect, 'connect')
+    ctx.command.add_command(disconnect, 'disconnect')
     ctx.command.add_command(take_control, 'take-control')
     ctx.command.add_command(surrender_control, 'surrender-control')
     ctx.command.add_command(who_am_i, 'whoami')

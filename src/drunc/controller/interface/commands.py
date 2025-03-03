@@ -4,7 +4,7 @@ from time import sleep
 from drunc.controller.interface.context import ControllerContext
 from drunc.controller.interface.shell_utils import controller_setup, print_status_table
 from drunc.utils.utils import get_logger
-from druncschema.controller_pb2 import FSMCommand
+from druncschema.generic_pb2 import PlainTextVector
 
 
 logger_params = {
@@ -47,14 +47,68 @@ def status(obj:ControllerContext) -> None:
     descriptions = obj.get_driver('controller').describe() # Get the static system information
     print_status_table(obj, statuses, descriptions)
 
+
+@click.command('recompute-status')
+@click.pass_obj
+def recompute_status(obj:ControllerContext) -> None:
+    statuses = obj.get_driver('controller').recompute_status()
+    descriptions = obj.get_driver('controller').describe()
+    print_status_table(obj, statuses, descriptions)
+
+
 @click.command('connect')
 @click.argument('controller_address', type=str)
+@click.option('-f', '--force', is_flag=True, help='Confirm the disconnect')
 @click.pass_obj
-def connect(obj:ControllerContext, controller_address:str) -> None:
+def connect(obj:ControllerContext, controller_address:str, force:bool) -> None:
     log = get_logger(**logger_params)
-    log.info(f'Connecting this shell to the controller at {controller_address}')
+
+    if obj.has_driver('controller'):
+        driver = obj.get_driver("controller")
+        log.info(f'Already connected to a controller ({driver.name}@{driver.address})')
+        if not force:
+            click.confirm('Do you want to disconnect from it before?', abort=True)
+        log.info('Disconnecting...')
+        obj.delete_driver('controller')
+
+    log.info(f'Connecting this shell to the controller at {controller_address}...')
+
+    if controller_address.startswith('grpc://'):
+        controller_address = controller_address.replace('grpc://', '')
+
     obj.set_controller_driver(controller_address)
     controller_setup(obj, controller_address)
+
+
+@click.command('disconnect')
+@click.option('-f', '--force', is_flag=True, help='Confirm the disconnect')
+@click.pass_obj
+def disconnect(obj:ControllerContext, force:bool):
+    log = get_logger(**logger_params)
+
+    if not obj.has_driver('controller'):
+        log.info('You are not connected to any controller.')
+        return
+
+    driver = obj.get_driver("controller")
+
+    if not force:
+        log.info(f'''
+[red]You are about to disconnect from the {driver.name} controller.[/red]
+
+To reconnect to it, you will need to issue the following command:
+
+[yellow]connect {driver.address}[/yellow]
+
+To get the address of another controller, abort now and issue the command:
+
+[yellow]status[/yellow]
+
+You can also find the controller address on the connectivity service.
+''', extra={'markup': True})
+        click.confirm('Are you sure you want to disconnect from the controller?', abort=True)
+
+    obj.delete_driver('controller')
 
 
 @click.command('take-control')
@@ -85,9 +139,10 @@ def who_is_in_charge(obj:ControllerContext) -> None:
         log.info(who.text)
 
 @click.command('include')
+@click.argument('children', type=str, nargs=-1)
 @click.pass_obj
-def include(obj:ControllerContext) -> None:
-    data = FSMCommand(command_name = 'include')
+def include(obj:ControllerContext, children:list[str]) -> None:
+    data = PlainTextVector(text=children)
     result = obj.get_driver('controller').include(arguments=data).data
     if not result: return
     log = get_logger(**logger_params)
@@ -95,9 +150,10 @@ def include(obj:ControllerContext) -> None:
 
 
 @click.command('exclude')
+@click.argument('children', type=str, nargs=-1)
 @click.pass_obj
-def exclude(obj:ControllerContext) -> None:
-    data = FSMCommand(command_name = 'exclude')
+def exclude(obj:ControllerContext, children:list[str]) -> None:
+    data = PlainTextVector(text=children)
     result = obj.get_driver('controller').exclude(arguments=data).data
     if not result: return
     log = get_logger(**logger_params)

@@ -162,7 +162,7 @@ class SSHProcessManager(ProcessManager):
                 f'-{nlines}',
                 logfile,
             ]
-            self._log.debug(f"cmd: {cmd}")
+            self.log.debug(f"cmd: {cmd}")
             arguments = [user_host, "-tt", "-o StrictHostKeyChecking=no"] + cmd
             self.ssh (
                 *arguments,

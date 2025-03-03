@@ -36,15 +36,17 @@ def controller_shell(ctx, controller_address:str, log_level:str) -> None:
     # TODO: work out how to make the following lines legit without breaking the wrapper
     # def cleanup():
     #     ctx.call_on_close(controller_shell_log.warning(f"[green]{getpass.getuser()}[/green] disconnected from the [green]{ctx.obj.get_driver('controller').describe().data.name}[/green] through a [green]controller-shell[/green]"))
-    # ctx.call_on_close(cleanup) 
+    # ctx.call_on_close(cleanup)
 
     from drunc.controller.interface.commands import (
-        status, connect, take_control, surrender_control, who_am_i, who_is_in_charge, include, exclude, wait
+        status, recompute_status, connect, disconnect, take_control, surrender_control, who_am_i, who_is_in_charge, include, exclude, wait
     )
     transitions = ctx.obj.get_driver('controller').describe_fsm(key="all-transitions").data
 
     ctx.command.add_command(status, 'status')
+    ctx.command.add_command(recompute_status, 'recompute-status')
     ctx.command.add_command(connect, 'connect')
+    ctx.command.add_command(disconnect, 'disconnect')
     ctx.command.add_command(take_control, 'take-control')
     ctx.command.add_command(surrender_control, 'surrender-control')
     ctx.command.add_command(who_am_i, 'whoami')
