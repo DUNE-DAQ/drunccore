@@ -5,6 +5,7 @@ from drunc.controller.interface.shell_utils import controller_setup
 from drunc.process_manager.interface.context import ProcessManagerContext
 from drunc.utils.shell_utils import InterruptedCommand
 from drunc.utils.utils import run_coroutine, log_levels, get_logger
+from druncschema.process_manager_pb2 import ProcessQuery
 
 @click.command('boot')
 @click.option(
@@ -33,6 +34,14 @@ async def boot(
     ) -> None:
 
     log = get_logger("unified_shell.boot")
+
+    processes = await obj.get_driver('process_manager').ps(ProcessQuery(
+        user = user
+    ))
+
+    if len(processes.data.values) > 0:
+        click.confirm(f'You already have {len(processes.data.values)} processes running, are you sure you want to boot a session?', abort=True)
+
     try:
         results = obj.get_driver('process_manager').boot(
             conf = obj.boot_configuration,
