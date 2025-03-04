@@ -113,8 +113,17 @@ class FlaskManager(threading.Thread):
             daemon = True
         )
         flask_srv.start()
-        self.gunicorn_pid = flask_srv.pid
-        self.log.debug(f'Flask lives on PID: {flask_srv.pid}')
+
+        self.gunicorn_pid = None
+
+        for _ in range(10):
+            if flask_srv.is_alive():
+                self.gunicorn_pid = flask_srv.pid
+                break
+            time.sleep(0.5)
+
+        if self.gunicorn_pid is None:
+            raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
 
         tries=0
 
@@ -122,8 +131,12 @@ class FlaskManager(threading.Thread):
             if tries>20:
                 self.log.critical(f'Cannot ping the {self.name}!')
                 self.log.critical('This can happen if the web proxy is on at NP04.'+
-                                  '\nExit NanoRC and try again after executing:'+
+                                  '\nExit drunc and try again after executing:'+
                                   '\nsource ~np04daq/bin/web_proxy.sh -u')
+
+                if not flask_srv.is_alive():
+                    self.log.critical(f'{self.name} is not alive, it exited with code {flask_srv.exitcode}')
+
                 raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
             tries += 1
             try:
