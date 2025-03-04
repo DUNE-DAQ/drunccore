@@ -107,7 +107,7 @@ class ResponseListener:
                     return "ready"
 
                 cls.app.add_url_rule("/response", "index", index, methods=["POST"])
-                cls.app.add_url_rule("/", "get", get, methods=["GET"])
+                cls.app.add_url_rule("/readystatus", "get", get, methods=["GET"])
                 cls.manager = FlaskManager(
                     port = cls.port,
                     app = cls.app,

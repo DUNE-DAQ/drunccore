@@ -130,10 +130,11 @@ class FlaskManager(threading.Thread):
                 resp = requests.get(f"http://{self.host}:{self.port}/readystatus")
                 if resp.text == "ready":
                     break
-            except Exception:
-                pass
+            except Exception as e:
+                self.log.info(f'Cannot get status from {self.name}: {e}, retrying in 0.5s...')
             time.sleep(0.5)
 
+        self.log.info(f'{self.name} is ready')
         # We don't release that lock before we have received a "ready" from the listener
         with self.ready_lock:
             self.ready = True
