@@ -126,6 +126,7 @@ class FlaskManager(threading.Thread):
             raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
 
         tries=0
+        stored_exception = None
 
         while True:
             if tries>20:
@@ -137,14 +138,15 @@ class FlaskManager(threading.Thread):
                 if not flask_srv.is_alive():
                     self.log.critical(f'{self.name} is not alive, it exited with code {flask_srv.exitcode}')
 
-                raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
+                raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}") from stored_exception
             tries += 1
             try:
                 resp = requests.get(f"http://{self.host}:{self.port}/readystatus")
                 if resp.text == "ready":
                     break
             except Exception as e:
-                self.log.info(f'Cannot get status from {self.name}: {e}, retrying in 0.5s...')
+                stored_exception = e
+
             time.sleep(0.5)
 
         self.log.info(f'{self.name} is ready')
