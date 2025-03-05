@@ -1,4 +1,6 @@
 import abc
+from kafkaopmon.OpMonPublisher import OpMonPublisher
+
 from typing import Optional
 
 from drunc.broadcast.server.broadcast_sender import BroadcastSender
@@ -9,6 +11,7 @@ from drunc.fsm.utils import decode_fsm_arguments
 from drunc.utils.utils import get_logger
 
 from druncschema.broadcast_pb2 import BroadcastType
+
 
 class Observed:
     @property
@@ -25,17 +28,20 @@ class Observed:
             message = f'Changing {self._name} from {self._value} to {value}',
             btype = self._broadcast_key,
         )
+
         self._value = value
 
     def __init__(
             self,
             name:str,
             broadcast_on_change:Optional[BroadcastSender]=None,
+            opmon_publisher:Optional[OpMonPublisher]=None,
             broadcast_key=None, # Optional[BroadcastType]=None
             initial_value:Optional[str]=None
         ):
         self._name = name
         self._broadcast_on_change = broadcast_on_change
+        self._opmon_publisher = opmon_publisher
         self._value = initial_value
         self._broadcast_key = broadcast_key
 
@@ -88,27 +94,36 @@ class TransitionExecuting(StatefulNodeException):
         super().__init__('A transition is already executing')
 
 class StatefulNode(abc.ABC):
-    def __init__(self, fsm_configuration, broadcaster:Optional[BroadcastSender]=None):
+    def __init__(self, fsm_configuration, publisher:Optional[OpMonPublisher] = None, broadcaster:Optional[BroadcastSender]=None):
+
         self.broadcast = broadcaster
+
+        self.publisher = publisher
+
+
         self.__fsm = FSM(fsm_configuration)
         self.log = get_logger('controller.StatefulNode')
         self.__operational_state = OperationalState(
             broadcast_on_change = self.broadcast,
+            opmon_publisher = self.publisher,
             broadcast_key = BroadcastType.FSM_STATUS_UPDATE,
             initial_value = self.__fsm.initial_state
         )
         self.__operational_sub_state = OperationalState(
             broadcast_on_change = self.broadcast,
+            opmon_publisher = self.publisher,
             broadcast_key = BroadcastType.FSM_STATUS_UPDATE,
             initial_value = self.__fsm.initial_state
         )
         self.__included = InclusionState(
             broadcast_on_change = self.broadcast,
+            opmon_publisher = self.publisher,
             broadcast_key = BroadcastType.STATUS_UPDATE,
             initial_value = True
         )
         self.__in_error = ErrorState(
             broadcast_on_change = self.broadcast,
+            opmon_publisher = self.publisher,
             broadcast_key = BroadcastType.STATUS_UPDATE,
             initial_value = False
         )
@@ -118,6 +133,12 @@ class StatefulNode(abc.ABC):
 
     def get_node_operational_sub_state(self):
         return self.__operational_sub_state.value
+
+    def force_set_node_operational_state(self, state):
+        self.__operational_state.value = state
+
+    def force_set_node_operational_sub_state(self, state):
+        self.__operational_sub_state.value = state
 
     def get_fsm_transitions(self):
         r = self.__fsm.get_executable_transitions(self.get_node_operational_state())
@@ -230,3 +251,4 @@ class StatefulNode(abc.ABC):
         self.__operational_sub_state.value = self.__operational_state.value
 
         return transition_data
+    

@@ -81,7 +81,7 @@ def collect_apps(db, session, segment, env:Dict[str,str], tree_prefix=[0,]) -> L
   # Recurse over nested segments
   for idx, seg in enumerate(segment.segments):
     if confmodel.component_disabled(db._obj, session.id, seg.id):
-      log.info(f'Ignoring segment \'{seg.id}\' as it is disabled')
+      log.debug(f'Ignoring segment \'{seg.id}\' as it is disabled')
       continue
 
     new_tree_prefix = tree_prefix + [idx]
@@ -100,7 +100,7 @@ def collect_apps(db, session, segment, env:Dict[str,str], tree_prefix=[0,]) -> L
       log.debug(f"{app.id} {enabled=}")
 
     if not enabled:
-      log.info(f"Ignoring disabled app {app.id}")
+      log.debug(f"Ignoring disabled app {app.id}")
       continue
 
     app_env = defenv.copy()

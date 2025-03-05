@@ -13,7 +13,6 @@ from drunc.utils.utils import ControlType, get_logger
 from druncschema.controller_pb2_grpc import ControllerStub
 from druncschema.request_response_pb2 import Description, Response
 
-
 class gRCPChildConfHandler(ConfHandler):
     def get_uri(self):
         for service in self.data.controller.exposes_service:
@@ -26,7 +25,7 @@ class gRPCChildNode(ChildNode):
     def __init__(self, name, configuration:gRCPChildConfHandler, init_token, uri):
         super().__init__(
             name = name,
-            node_type = ControlType.gRPC, 
+            node_type = ControlType.gRPC,
             configuration  = configuration
         )
 
@@ -70,8 +69,10 @@ class gRPCChildNode(ChildNode):
                 break
         self.start_listening(desc.broadcast)
 
+
     def __str__(self):
         return f'\'{self.name}@{self.uri}\' (type {self.node_type})'
+
 
     def get_endpoint(self):
         return self.uri
@@ -85,14 +86,6 @@ class gRPCChildNode(ChildNode):
             )
         )
 
-    def get_status(self, token) -> Response:
-        return send_command(
-            controller = self.controller,
-            token = token,
-            command = 'status',
-            data = None
-        )
-
     def terminate(self):
         if self.channel:
             self.channel.close()
@@ -103,7 +96,7 @@ class gRPCChildNode(ChildNode):
         self.controller = None
         self.channel = None
         self.broadcast.stop()
-        pass
+
 
     def propagate_command(self, command, data, token) -> Response:
         return send_command(

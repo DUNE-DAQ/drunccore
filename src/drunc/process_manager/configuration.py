@@ -22,6 +22,7 @@ class ProcessManagerConfData:
         self.authoriser = None
         self.type = ProcessManagerTypes.Unknown
         self.command_address = ''
+        self.environment = {}
 
 class ProcessManagerConfHandler(ConfHandler):
     def __init__(self, log_path:str, *args, **kwargs):
@@ -36,7 +37,7 @@ class ProcessManagerConfHandler(ConfHandler):
         else:
             new_data.broadcaster = None
         new_data.authoriser = None
-
+        new_data.environment = data.get('environment', {})
         match data['type'].lower():
             case 'ssh':
                 new_data.type = ProcessManagerTypes.SSH

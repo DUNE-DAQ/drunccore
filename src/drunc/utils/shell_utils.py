@@ -184,8 +184,6 @@ class GRPCDriver:
                     self.log.error(f"Exception thrown from child: {e}")
             return dr
 
-            # raise DruncServerSideError(error_txt, stack_txt, server_response=dr)
-
     def send_command(self, command:str, data=None, outformat=None, decode_children=False):
         if not self.stub:
             raise DruncShellException('No stub initialised')
@@ -275,11 +273,16 @@ class ShellContext:
         except KeyError:
             log = get_logger("utils.ShellContext")
             log.exception('Controller-specific commands cannot be sent until the session is booted')
+            log.debug(f'Drivers available are {self._drivers.keys()}')
             raise SystemExit(1) # used to avoid having to catch multiple Attribute errors when this function gets called
+
+    def has_driver(self, name:str) -> bool:
+        return name in self._drivers
 
     def delete_driver(self, name: str) -> None:
         log = get_logger("utils.ShellContext")
         if name in self._drivers:
+            log.info(f"You will not be able to issue command to {self._drivers[name].name} anymore.")
             del self._drivers[name]
             log.info(f"Driver '{name}' has been deleted.")
 

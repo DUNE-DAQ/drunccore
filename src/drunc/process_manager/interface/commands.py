@@ -29,6 +29,14 @@ async def boot(
     override_logs:bool,
     ) -> None:
     log = get_logger("process_manager.shell")
+
+    processes = await obj.get_driver('process_manager').ps(ProcessQuery(
+        user = user
+    ))
+
+    if len(processes.data.values) > 0:
+        click.confirm(f'You already have {len(processes.data.values)} processes running, are you sure you want to boot a session?', abort=True)
+
     log.debug(f"Booting session {session_name} with boot configuration {boot_configuration}, requested by user {user}")
     try:
         results = obj.get_driver('process_manager').boot(

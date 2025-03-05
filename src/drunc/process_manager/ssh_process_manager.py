@@ -134,7 +134,7 @@ class SSHProcessManager(ProcessManager):
         self.log.info('Terminating')
         if self.process_store:
             self.log.info('Killing all the known processes before exiting')
-            uuids = [uuid for uuid, process in self.process_store.items()]
+            uuids = self._get_process_uid(query=ProcessQuery(names=['.*']), order_by='leaf_first')
             return self.kill_processes(uuids)
         else:
             self.log.info('No known process to kill before exiting')
@@ -146,6 +146,9 @@ class SSHProcessManager(ProcessManager):
         self.log.debug(f'Retrieving logs for {log_request.query}')
         uid = self._ensure_one_process(self._get_process_uid(log_request.query))
         logfile = self.boot_request[uid].process_description.process_logs_path
+        user = self.boot_request[uid].process_description.metadata.user
+        host = self.boot_request[uid].process_description.metadata.hostname
+        user_host = f'{user}@{host}'
         # https://stackoverflow.com/questions/7167008/efficiently-finding-the-last-line-in-a-text-file
         # "Not the straight forward way"...
         f = tempfile.NamedTemporaryFile(delete=False)
@@ -154,8 +157,15 @@ class SSHProcessManager(ProcessManager):
             nlines = 100
 
         try:
-            sh.tail(
-                f'-{nlines}', logfile,
+            cmd = [
+                "tail",
+                f'-{nlines}',
+                logfile,
+            ]
+            self.log.debug(f"cmd: {cmd}")
+            arguments = [user_host, "-tt", "-o StrictHostKeyChecking=no"] + cmd
+            self.ssh (
+                *arguments,
                 _out=f.name,
                 _err_to_out=True,
             )
@@ -269,6 +279,8 @@ class SSHProcessManager(ProcessManager):
                 self.process_store[uuid] = self.ssh (
                     *arguments,
                     # _out=partial(self._process_children_logs, uuid),
+                    _out=self.log.debug,
+                    _err=self.log.error,
                     _bg=True,
                     _bg_exc=False,
                     _new_session=True,
@@ -411,8 +423,7 @@ class SSHProcessManager(ProcessManager):
     def _kill_impl(self, query:ProcessQuery) -> ProcessInstanceList:
         self.log.info(f'{self.name} killing {query.names} in session {self.session}')
         if self.process_store:
-            self.log.warning('Killing all the known processes before exiting')
-            uuids = self._get_process_uid(query)
+            uuids = self._get_process_uid(query, order_by='leaf_first')
             return self.kill_processes(uuids)
         else:
             self.log.info('No known process to kill before exiting')

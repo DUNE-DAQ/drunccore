@@ -53,7 +53,7 @@ class ResponseDispatcher(threading.Thread):
             # self.log.debug(f'Queue pointer {self.listener.queue}')
             # try:
             r = self.listener.queue.get()
-            #     self.log.debug(f'ResponseDispatcher got the following answer: {r}')
+            self.log.debug(f'ResponseDispatcher got the following answer: {r}')
             # except:
             #     self.log.debug(f'ResponseDispatcher nothing')
             #     continue
@@ -479,7 +479,7 @@ class RESTAPIChildNode(ClientSideChild):
                 exit_state = exit_state.upper(),
             )
             self.log.debug(f'Sent \'{data.command_name}\' to \'{self.name}\'')
-            r = self.commander.check_response(150)
+            r = self.commander.check_response(10)
 
             self.log.debug(f'Got response from \'{data.command_name}\' to \'{self.name}\'')
 
