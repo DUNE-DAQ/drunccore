@@ -113,27 +113,43 @@ class FlaskManager(threading.Thread):
             daemon = True
         )
         flask_srv.start()
-        self.gunicorn_pid = flask_srv.pid
-        self.log.debug(f'Flask lives on PID: {flask_srv.pid}')
+
+        self.gunicorn_pid = None
+
+        for _ in range(10):
+            if flask_srv.is_alive():
+                self.gunicorn_pid = flask_srv.pid
+                break
+            time.sleep(0.5)
+
+        if self.gunicorn_pid is None:
+            raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
 
         tries=0
+        stored_exception = None
 
         while True:
             if tries>20:
                 self.log.critical(f'Cannot ping the {self.name}!')
                 self.log.critical('This can happen if the web proxy is on at NP04.'+
-                                  '\nExit NanoRC and try again after executing:'+
+                                  '\nExit drunc and try again after executing:'+
                                   '\nsource ~np04daq/bin/web_proxy.sh -u')
-                raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
+
+                if not flask_srv.is_alive():
+                    self.log.critical(f'{self.name} is not alive, it exited with code {flask_srv.exitcode}')
+
+                raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}") from stored_exception
             tries += 1
             try:
                 resp = requests.get(f"http://{self.host}:{self.port}/readystatus")
                 if resp.text == "ready":
                     break
-            except Exception:
-                pass
+            except Exception as e:
+                stored_exception = e
+
             time.sleep(0.5)
 
+        self.log.info(f'{self.name} is ready')
         # We don't release that lock before we have received a "ready" from the listener
         with self.ready_lock:
             self.ready = True
