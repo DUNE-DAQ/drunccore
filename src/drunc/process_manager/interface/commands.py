@@ -2,6 +2,7 @@ import click
 import getpass
 from rich.markup import escape
 from rich.panel import Panel
+import asyncio
 
 from drunc.process_manager.interface.cli_argument import add_query_options, validate_conf_string
 from drunc.process_manager.interface.context import ProcessManagerContext
@@ -49,8 +50,11 @@ async def boot(
         async for result in results:
             if not result: break
             log.debug(f'\'{result.data.process_description.metadata.name}\' ({result.data.uuid.uuid}) process started')
+        
+        
     except InterruptedCommand:
         return
+
 
     controller_address = obj.get_driver('process_manager').controller_address
     if controller_address:

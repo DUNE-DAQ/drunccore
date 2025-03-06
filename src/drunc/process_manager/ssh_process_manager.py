@@ -338,6 +338,7 @@ class SSHProcessManager(ProcessManager):
             return_code = return_code,
             uuid = pu
         )
+
         return pi
 
 

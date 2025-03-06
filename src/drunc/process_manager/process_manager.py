@@ -1,6 +1,9 @@
 import abc
 import re
 from google.rpc import code_pb2
+import threading
+import time
+
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import authentified_and_authorised, async_authentified_and_authorised
@@ -13,6 +16,10 @@ from drunc.process_manager.configuration import ProcessManagerConfHandler, Proce
 from drunc.utils.configuration import ConfTypes
 from drunc.utils.grpc_utils import async_unpack_request_data_to, pack_to_any, unpack_request_data_to
 from drunc.utils.utils import get_logger, pid_info_str
+from kafkaopmon.OpMonPublisher import OpMonPublisher
+from druncschema.opmon_pb2 import RunInfo
+
+
 
 from druncschema.authoriser_pb2 import ActionType, SystemType
 from druncschema.broadcast_pb2 import BroadcastType
@@ -57,6 +64,27 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             dach,
             SystemType.PROCESS_MANAGER
         )
+        
+        self.opmon_publisher = None
+
+        if self.configuration.data.opmon_uri:
+            opmon_path = self.configuration.data.opmon_uri['path']
+            opmon_type = self.configuration.data.opmon_uri['type']
+            opmon_sleep_time = self.configuration.data.opmon_uri['sleep_time']
+
+            self.log.info(f'OpMon path {opmon_path} and type {opmon_type} is enabled')
+
+            if '/' in opmon_path:
+                opmon_bootstrap, opmon_topic = opmon_path.split('/', 1)
+            else:
+                opmon_bootstrap = opmon_path
+                opmon_topic = 'opmon_stream'
+
+            if opmon_type == 'stream':
+                self.opmon_publisher = OpMonPublisher(
+                    default_topic=opmon_topic,
+                    bootstrap=opmon_bootstrap
+                )
 
         self.process_store = {} # dict[str, sh.RunningCommand]
         self.boot_request = {} # dict[str, BootRequest]
@@ -126,6 +154,22 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             message = 'ready',
             btype = BroadcastType.SERVER_READY
         )
+
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(),opmon_sleep_time), daemon=True)
+        self.thread.start()
+
+
+    def run_ps(self, q:ProcessQuery, sleep_time:float = 2):
+        while not self.stop_event.is_set():
+            data = self._ps_impl(q)
+            self.opmon_publisher.publish(
+                session = self.session,
+                application = self.name,
+                message = RunInfo(run_type = "my test", trigger_rate = 2, run_number = 3,disable_data_storage = False)    
+                 )
+            time.sleep(sleep_time)
+    
     '''
     A couple of simple pass-through functions to the broadcasting service
     '''
@@ -165,6 +209,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         self.log.debug(f"{self.name} booting \'{br.process_description.metadata.name}\' from session \'{br.process_description.metadata.session}\'")
         try:
             resp = self._boot_impl(br)
+            
             return Response(
                 name = self.name,
                 token = None,
@@ -195,6 +240,8 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     @unpack_request_data_to(None) # 3rd step
     def terminate(self) -> Response:
         self.log.debug(f"{self.name} terminating")
+        self.stop_event.set()
+        self.thread.join()
         try:
             resp = self._terminate_impl()
             return Response(
@@ -501,5 +548,3 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         else:
             log.error(f'ProcessManager type {conf.get("type")} is unsupported!')
             raise RuntimeError(f'ProcessManager type {conf.get("type")} is unsupported!')
-
-
