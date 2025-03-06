@@ -1,27 +1,31 @@
-from flask import Flask, make_response, jsonify, request
-from flask_restful import Api, Resource
-import gunicorn.app.base
-from multiprocessing import Process
-import psutil
-import requests
+import signal
 import threading
 import time
+from multiprocessing import Process
 from typing import NoReturn
-import signal
+
+import gunicorn.app.base
+import psutil
+import requests
+from flask import Flask, jsonify, make_response, request
+from flask_restful import Api, Resource
 
 from drunc.exceptions import DruncCommandException
 from drunc.utils.utils import get_logger, get_new_port
 
-class GunicornStandaloneApplication(gunicorn.app.base.BaseApplication):
 
+class GunicornStandaloneApplication(gunicorn.app.base.BaseApplication):
     def __init__(self, app, options=None):
         self.options = options or {}
         self.application = app
         super().__init__()
 
     def load_config(self):
-        config = {key: value for key, value in self.options.items()
-                  if key in self.cfg.settings and value is not None}
+        config = {
+            key: value
+            for key, value in self.options.items()
+            if key in self.cfg.settings and value is not None
+        }
         for key, value in config.items():
             self.cfg.set(key.lower(), value)
 
@@ -32,8 +36,9 @@ class GunicornStandaloneApplication(gunicorn.app.base.BaseApplication):
 class CannotStartFlaskManager(DruncCommandException):
     pass
 
+
 class FlaskManager(threading.Thread):
-    '''
+    """
     This class is a manager for flask.
     It allows to have a Flask server under a thread, start and stop it.
     Note that it creates another -trivial- endpoint accessible at the route /readystatus.
@@ -67,10 +72,10 @@ class FlaskManager(threading.Thread):
     <snippet>
     manager.stop()
     </snippet>
-    '''
+    """
 
-    def __init__(self, name, app, port, workers=1, host='0.0.0.0'):
-        super(FlaskManager, self).__init__(daemon = True)
+    def __init__(self, name, app, port, workers=1, host="0.0.0.0"):
+        super(FlaskManager, self).__init__(daemon=True)
         self.log = get_logger(f"utils.{name}-flaskmanager")
         self.name = name
         self.app = app
@@ -96,21 +101,21 @@ class FlaskManager(threading.Thread):
             return "ready"
 
         if need_ready:
-            self.app.add_url_rule("/readystatus", "get_ready_status", get_ready_status, methods=["GET"])
+            self.app.add_url_rule(
+                "/readystatus", "get_ready_status", get_ready_status, methods=["GET"]
+            )
 
         self.prod_app = GunicornStandaloneApplication(
-            app = self.app,
-            options = {
+            app=self.app,
+            options={
                 "bind": f"{self.host}:{self.port}",
                 "workers": self.workers,
-            }
+            },
         )
 
-        thread_name = f'{self.name}_thread'
-        flask_srv = Process( # Indeed, we've just forked this sucker
-            target = self.prod_app.run,
-            name = thread_name,
-            daemon = True
+        thread_name = f"{self.name}_thread"
+        flask_srv = Process(  # Indeed, we've just forked this sucker
+            target=self.prod_app.run, name=thread_name, daemon=True
         )
         flask_srv.start()
 
@@ -123,22 +128,30 @@ class FlaskManager(threading.Thread):
             time.sleep(0.5)
 
         if self.gunicorn_pid is None:
-            raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}")
+            raise CannotStartFlaskManager(
+                f"Cannot start a FlaskManager for {self.name}"
+            )
 
-        tries=0
+        tries = 0
         stored_exception = None
 
         while True:
-            if tries>20:
-                self.log.critical(f'Cannot ping the {self.name}!')
-                self.log.critical('This can happen if the web proxy is on at NP04.'+
-                                  '\nExit drunc and try again after executing:'+
-                                  '\nsource ~np04daq/bin/web_proxy.sh -u')
+            if tries > 20:
+                self.log.critical(f"Cannot ping the {self.name}!")
+                self.log.critical(
+                    "This can happen if the web proxy is on at NP04."
+                    + "\nExit drunc and try again after executing:"
+                    + "\nsource ~np04daq/bin/web_proxy.sh -u"
+                )
 
                 if not flask_srv.is_alive():
-                    self.log.critical(f'{self.name} is not alive, it exited with code {flask_srv.exitcode}')
+                    self.log.critical(
+                        f"{self.name} is not alive, it exited with code {flask_srv.exitcode}"
+                    )
 
-                raise CannotStartFlaskManager(f"Cannot start a FlaskManager for {self.name}") from stored_exception
+                raise CannotStartFlaskManager(
+                    f"Cannot start a FlaskManager for {self.name}"
+                ) from stored_exception
             tries += 1
             try:
                 resp = requests.get(f"http://{self.host}:{self.port}/readystatus")
@@ -149,7 +162,7 @@ class FlaskManager(threading.Thread):
 
             time.sleep(0.5)
 
-        self.log.info(f'{self.name} is ready')
+        self.log.info(f"{self.name} is ready")
         # We don't release that lock before we have received a "ready" from the listener
         with self.ready_lock:
             self.ready = True
@@ -177,11 +190,11 @@ class FlaskManager(threading.Thread):
         # manager = manager.restart_renew()
 
         fm = FlaskManager(
-            name = self.name,
-            app = self.app,
-            port = self.port,
-            workers = self.workers,
-            host = self.host
+            name=self.name,
+            app=self.app,
+            port=self.port,
+            workers=self.workers,
+            host=self.host,
         )
         fm.start()
         while not fm.is_ready():
@@ -207,34 +220,28 @@ class FlaskManager(threading.Thread):
             self.ready = False
             self.joined = True
 
-        self.log.info(f'{self.name}-flaskmanager terminated')
+        self.log.info(f"{self.name}-flaskmanager terminated")
 
     def run(self) -> NoReturn:
         self._create_and_join_flask()
 
 
 def main():
-
     class DummyEndpoint(Resource):
         def post(self):
             print(request)
 
         def get(self):
-            return make_response(jsonify({'weeeee':"wooo"}))
+            return make_response(jsonify({"weeeee": "wooo"}))
 
-    app = Flask('test-app')
+    app = Flask("test-app")
     api = Api(app)
-    api.add_resource(
-        DummyEndpoint, "/dummy", methods = ['GET', 'POST']
-    )
+    api.add_resource(DummyEndpoint, "/dummy", methods=["GET", "POST"])
 
     for _ in range(10):
         try:
             manager = FlaskManager(
-                port = get_new_port(),
-                app = app,
-                name = "test_name",
-                host = "127.0.0.1"
+                port=get_new_port(), app=app, name="test_name", host="127.0.0.1"
             )
         except:
             continue
@@ -242,24 +249,25 @@ def main():
             manager.start()
             while not manager.is_ready():
                 time.sleep(0.1)
-            assert(not manager.is_terminated())
-            assert(manager.is_ready())
+            assert not manager.is_terminated()
+            assert manager.is_ready()
 
-            requests.get(f'http://127.0.0.1:{manager.port}/dummy')
-            print('succesfully got endpoint /dummy')
+            requests.get(f"http://127.0.0.1:{manager.port}/dummy")
+            print("succesfully got endpoint /dummy")
             manager.stop()
-            assert(manager.is_terminated())
-            assert(not manager.is_ready())
+            assert manager.is_terminated()
+            assert not manager.is_ready()
 
             manager = manager.restart_renew()
-            assert(not manager.is_terminated())
-            assert(manager.is_ready())
-            requests.get(f'http://127.0.0.1:{manager.port}/dummy')
-            print('succesfully got endpoint /dummy')
+            assert not manager.is_terminated()
+            assert manager.is_ready()
+            requests.get(f"http://127.0.0.1:{manager.port}/dummy")
+            print("succesfully got endpoint /dummy")
             manager.stop()
-            assert(manager.is_terminated())
-            assert(not manager.is_ready())
+            assert manager.is_terminated()
+            assert not manager.is_ready()
             break
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
