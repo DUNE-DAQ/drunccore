@@ -13,3 +13,4 @@ Flask==2.1.1
 Flask-RESTful==0.3.9
 sh==1.14.1
 kubernetes==29.0.0
+pytz==2024.2
