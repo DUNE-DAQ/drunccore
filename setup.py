@@ -20,7 +20,7 @@ setup(
         "sh==1.14.1",
         "kubernetes==29.0.0",
         "pytz==2024.2",
-        "psutil==7.0.0",
+        "psutil==6.1.0",
     ],
     extras_require={"develop": ["ipdb", "ipython", "ruff", "pre-commit", "pytest"]},
 )
