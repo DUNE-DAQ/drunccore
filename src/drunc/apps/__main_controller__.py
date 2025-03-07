@@ -1,5 +1,11 @@
 from drunc.controller.interface.controller import controller_cli
-from drunc.utils.utils import get_logger, setup_root_logger, print_traceback, create_logger_handler
+from drunc.utils.utils import (
+    create_logger_handler,
+    get_logger,
+    print_traceback,
+    setup_root_logger,
+)
+
 
 def main():
     try:
@@ -12,6 +18,6 @@ def main():
         print_traceback(e)
         exit(1)
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == "__main__":
+    main()

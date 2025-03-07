@@ -1,19 +1,37 @@
 import asyncio
-import click
 import logging
 import multiprocessing
 import os
-import pytest
 import signal
 import socket
 import tempfile
 import threading
 import time
+
+import click
 import psutil
+import pytest
 
 from drunc.exceptions import DruncSetupException
-from drunc.utils.utils import ControlType, expand_path, get_control_type_and_uri_from_cli, get_logger, get_new_port, get_random_string, host_is_local, https_or_http_present, IncorrectAddress, now_str, parent_death_pact, regex_match, resolve_localhost_and_127_ip_to_network_ip, resolve_localhost_to_hostname, run_coroutine, setup_root_logger, validate_command_facility
-
+from drunc.utils.utils import (
+    ControlType,
+    IncorrectAddress,
+    expand_path,
+    get_control_type_and_uri_from_cli,
+    get_logger,
+    get_new_port,
+    get_random_string,
+    host_is_local,
+    https_or_http_present,
+    now_str,
+    parent_death_pact,
+    regex_match,
+    resolve_localhost_and_127_ip_to_network_ip,
+    resolve_localhost_to_hostname,
+    run_coroutine,
+    setup_root_logger,
+    validate_command_facility,
+)
 
 
 def test_get_random_string():
@@ -58,18 +76,22 @@ def test_setup_logger(caplog):
     assert get_logger("tester4").getEffectiveLevel() == logging.CRITICAL
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        log_path = temp_dir+"/test.log"
+        log_path = temp_dir + "/test.log"
         logger = get_logger("tester5", log_file_path=log_path)
-        logger.debug   ("invisible")
-        logger.info    ("invisible")
-        logger.warning ("invisible")
-        logger.error   ("invisible")
+        logger.debug("invisible")
+        logger.info("invisible")
+        logger.warning("invisible")
+        logger.error("invisible")
         logger.critical("VISIBLE")
         good_record = 0
         bad_record = 0
 
         for record in caplog.records:
-            if "VISIBLE" in record.getMessage() and record.levelno == logging.CRITICAL and "tester5" in record.name:
+            if (
+                "VISIBLE" in record.getMessage()
+                and record.levelno == logging.CRITICAL
+                and "tester5" in record.name
+            ):
                 good_record += 1
             else:
                 bad_record += 1
@@ -87,7 +109,7 @@ def test_get_new_port():
 
     # Check that the port is free
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        assert s.connect_ex(('localhost', port)) != 0
+        assert s.connect_ex(("localhost", port)) != 0
 
     # Check that the port is an integer
     assert isinstance(port, int)
@@ -100,13 +122,14 @@ def test_get_new_port():
 def test_run_coroutine():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
     @run_coroutine
     async def test_this_coroutine(val):
         return val
 
-    result = test_this_coroutine('abc')
+    result = test_this_coroutine("abc")
 
-    assert result == 'abc'
+    assert result == "abc"
 
 
 @pytest.mark.skip()  # reason="Not implemented correctly"
@@ -117,7 +140,7 @@ def test_interrupt_run_coroutine(capsys):
         print(val)
         return val
 
-    thread = threading.Thread(target=test_this_coroutine, kwargs={"val":'abcdef'})
+    thread = threading.Thread(target=test_this_coroutine, kwargs={"val": "abcdef"})
     thread.start()
     time.sleep(4)
     signal.pthread_kill(thread.get_ident(), signal.SIGINT)
@@ -196,9 +219,9 @@ def test_validate_command_facility():
     assert ret == "good:1234"
 
 
-
 def generate_address(text):
     return "grpc://" + text + ":1234/whatver"
+
 
 def test_resolve_localhost_to_hostname():
     hostname = socket.gethostname()
@@ -234,32 +257,36 @@ def test_host_is_local():
     assert host_is_local("localhost")
     assert host_is_local(this_ip)
     assert host_is_local("0.1.23.4")
-    assert host_is_local('127.1.3.6')
+    assert host_is_local("127.1.3.6")
     assert not host_is_local("google.com")
     assert not host_is_local("8.8.8.8")
 
 
 def test_parent_death_pact():
     def child_process():
-        parent_death_pact() # We're testing this one
+        parent_death_pact()  # We're testing this one
         child_pid = os.getpid()
-        print(f'Child PID: {child_pid}')
+        print(f"Child PID: {child_pid}")
         time.sleep(10)
 
     def parent_process():
-        parent_death_pact() # This isn't the one that we are testing
+        parent_death_pact()  # This isn't the one that we are testing
         # The purpose for this one is if someone ctrl+C the test, then this process should also die
         parent_pid = os.getpid()
-        print(f'Parent PID: {parent_pid}')
-        child_process_ = multiprocessing.Process(target=child_process, name="tester_child_process")
+        print(f"Parent PID: {parent_pid}")
+        child_process_ = multiprocessing.Process(
+            target=child_process, name="tester_child_process"
+        )
         child_process_.start()
         time.sleep(10)
 
-    process = multiprocessing.Process(target=parent_process, name="tester_parent_process")
+    process = multiprocessing.Process(
+        target=parent_process, name="tester_parent_process"
+    )
     process.start()
-    time.sleep(0.1) # Let it run for a while...
+    time.sleep(0.1)  # Let it run for a while...
     process.kill()
-    time.sleep(0.1) # Let it die for a while...
+    time.sleep(0.1)  # Let it die for a while...
 
     # Check that the child process is dead
     assert process.is_alive() == False
@@ -301,36 +328,51 @@ def test_http_get():
 def test_http_patch():
     raise NotImplementedError()
 
+
 @pytest.mark.xfail
 def test_http_delete():
     raise NotImplementedError()
 
+
 def test_get_control_type_and_uri_from_cli():
-    this_address = socket.gethostbyname(socket.gethostname())+":1234"
+    this_address = socket.gethostbyname(socket.gethostname()) + ":1234"
+
     def generate_cli(control_type, uri):
         return [f"{control_type}://{uri}:1234", "--something-else", "--drunc"]
 
-    control_type, uri = get_control_type_and_uri_from_cli(generate_cli("grpc", "localhost"))
+    control_type, uri = get_control_type_and_uri_from_cli(
+        generate_cli("grpc", "localhost")
+    )
     assert control_type == ControlType.gRPC
     assert uri == this_address
 
-    control_type, uri = get_control_type_and_uri_from_cli(generate_cli("grpc", "0.0.0.0"))
+    control_type, uri = get_control_type_and_uri_from_cli(
+        generate_cli("grpc", "0.0.0.0")
+    )
     assert control_type == ControlType.gRPC
     assert uri == this_address
 
-    control_type, uri = get_control_type_and_uri_from_cli(generate_cli("grpc", "np04-srv-123"))
+    control_type, uri = get_control_type_and_uri_from_cli(
+        generate_cli("grpc", "np04-srv-123")
+    )
     assert control_type == ControlType.gRPC
     assert uri == "np04-srv-123:1234"
 
-    control_type, uri = get_control_type_and_uri_from_cli(generate_cli("rest", "localhost"))
+    control_type, uri = get_control_type_and_uri_from_cli(
+        generate_cli("rest", "localhost")
+    )
     assert control_type == ControlType.REST_API
     assert uri == this_address
 
-    control_type, uri = get_control_type_and_uri_from_cli(generate_cli("rest", "0.0.0.0"))
+    control_type, uri = get_control_type_and_uri_from_cli(
+        generate_cli("rest", "0.0.0.0")
+    )
     assert control_type == ControlType.REST_API
     assert uri == this_address
 
-    control_type, uri = get_control_type_and_uri_from_cli(generate_cli("rest", "np04-srv-123"))
+    control_type, uri = get_control_type_and_uri_from_cli(
+        generate_cli("rest", "np04-srv-123")
+    )
     assert control_type == ControlType.REST_API
     assert uri == "np04-srv-123:1234"
 
@@ -341,4 +383,3 @@ def test_get_control_type_and_uri_from_cli():
 @pytest.mark.xfail
 def test_get_control_type_and_uri_from_connectivity_service():
     raise NotImplementedError()
-
