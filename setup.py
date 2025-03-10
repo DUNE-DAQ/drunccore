@@ -5,21 +5,22 @@ setup(
     name="drunc",
     install_requires=[
         "click",
-        "click_shell",
+        "click-shell",
         "grpcio",
         "googleapis-common-protos",
-        "grpcio_tools",
         "grpcio-status",
+        "grpcio-tools",
         "gunicorn",
         "kafka-python",
-        "nest_asyncio",
+        "nest-asyncio",
         "rich",
-        "sh"
+        "requests",
+        "Flask",
+        "Flask-RESTful",
+        "sh",
+        "kubernetes",
+        "pytz",
+        "psutil",
     ],
-    extras_require={"develop": [
-        "ipdb",
-        "ipython",
-        "ruff",
-        "pre-commit"
-    ]},
+    extras_require={"develop": ["ipdb", "ipython", "ruff", "pre-commit", "pytest"]},
 )
