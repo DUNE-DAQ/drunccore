@@ -388,15 +388,8 @@ class SSHProcessManager(ProcessManager):
             )
             ret += [pi]
 
-<<<<<<< HEAD
-        pil = ProcessInstanceList(
-            values=ret
-        )
-        
-=======
         pil = ProcessInstanceList(values=ret)
 
->>>>>>> develop
         return pil
 
     def _boot_impl(self, boot_request: BootRequest) -> ProcessInstance:

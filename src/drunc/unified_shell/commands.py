@@ -52,17 +52,11 @@ async def boot(
             override_logs=override_logs,
         )
         async for result in results:
-<<<<<<< HEAD
-            if not result: break
-            log.debug(f'\'{result.data.process_description.metadata.name}\' ({result.data.uuid.uuid}) started')
-        
-=======
             if not result:
                 break
             log.debug(
                 f"'{result.data.process_description.metadata.name}' ({result.data.uuid.uuid}) started"
             )
->>>>>>> develop
     except InterruptedCommand:
         log.warning("Booting interrupted")
         return
