@@ -3,6 +3,7 @@ import re
 from google.rpc import code_pb2
 import threading
 import time
+from operator import attrgetter
 
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
@@ -17,7 +18,7 @@ from drunc.utils.configuration import ConfTypes
 from drunc.utils.grpc_utils import async_unpack_request_data_to, pack_to_any, unpack_request_data_to
 from drunc.utils.utils import get_logger, pid_info_str
 from kafkaopmon.OpMonPublisher import OpMonPublisher
-from druncschema.opmon_pb2 import RunInfo
+from druncschema.opmon_process_manager_pb2 import ProcessStatus
 
 
 
@@ -66,6 +67,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         )
         
         self.opmon_publisher = None
+        opmon_sleep_time = 5.0
 
         if self.configuration.data.opmon_uri:
             opmon_path = self.configuration.data.opmon_uri['path']
@@ -154,20 +156,26 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             message = 'ready',
             btype = BroadcastType.SERVER_READY
         )
+        
 
         self.stop_event = threading.Event()
-        self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(),opmon_sleep_time), daemon=True)
+        self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(user = self.session),opmon_sleep_time), daemon=True)
         self.thread.start()
 
 
-    def run_ps(self, q:ProcessQuery, sleep_time:float = 2):
+    def run_ps(self, q:ProcessQuery, sleep_time:float = 5):
         while not self.stop_event.is_set():
-            data = self._ps_impl(q)
-            self.opmon_publisher.publish(
-                session = self.session,
-                application = self.name,
-                message = RunInfo(run_type = "my test", trigger_rate = 2, run_number = 3,disable_data_storage = False)    
-                 )
+            results = self._ps_impl(q)
+            #n_process = len(results.values)
+            n_running = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.RUNNING)
+            n_dead = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.DEAD)
+
+            if self.opmon_publisher is not None:
+                self.opmon_publisher.publish(
+                    session = self.session,
+                    application = self.name,
+                    message = ProcessStatus(n_running = n_running,n_dead = n_dead)    
+                    )
             time.sleep(sleep_time)
     
     '''
@@ -209,7 +217,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         self.log.debug(f"{self.name} booting \'{br.process_description.metadata.name}\' from session \'{br.process_description.metadata.session}\'")
         try:
             resp = self._boot_impl(br)
-            
+
             return Response(
                 name = self.name,
                 token = None,

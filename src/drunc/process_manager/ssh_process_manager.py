@@ -380,11 +380,10 @@ class SSHProcessManager(ProcessManager):
             )
             ret += [pi]
 
-
         pil = ProcessInstanceList(
             values=ret
         )
-
+        
         return pil
 
 
