@@ -5,6 +5,7 @@ import time
 
 from druncschema.authoriser_pb2 import ActionType, SystemType
 from druncschema.broadcast_pb2 import BroadcastType
+from druncschema.opmon_process_manager_pb2 import ProcessStatus
 from druncschema.process_manager_pb2 import (
     BootRequest,
     LogLine,
@@ -26,7 +27,6 @@ from druncschema.request_response_pb2 import (
 )
 from google.rpc import code_pb2
 from kafkaopmon.OpMonPublisher import OpMonPublisher
-from druncschema.opmon_process_manager_pb2 import ProcessStatus
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import (
