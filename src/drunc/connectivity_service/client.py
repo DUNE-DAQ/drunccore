@@ -17,13 +17,15 @@ class ConnectivityServiceClient:
             # assume the simplest case here
             self.address = f"http://{address}"
 
+        self.log.debug(f"Connectivity service address: {self.address}, session: {self.session}")
+
     def retract(self, uid):
         data = {
             "partition": self.session,
             "connections": [
                 {
                     "connection_id": uid,
-                    "data_type": "run-control-messages",
+                    "data_type": "RunControlMessage",
                 }
             ],
         }
