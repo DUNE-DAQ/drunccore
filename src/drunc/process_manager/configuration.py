@@ -47,6 +47,7 @@ class ProcessManagerConfHandler(ConfHandler):
             new_data.broadcaster = None
         new_data.authoriser = None
         new_data.environment = data.get("environment", {})
+        new_data.opmon_uri = data.get('opmon_uri', None)
         match data["type"].lower():
             case "ssh":
                 new_data.type = ProcessManagerTypes.SSH

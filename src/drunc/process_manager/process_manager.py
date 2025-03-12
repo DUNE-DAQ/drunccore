@@ -95,8 +95,10 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         
         self.opmon_publisher = None
         opmon_sleep_time = 5.0
+        print('debug config: ', self.configuration.data.__dict__)
 
         if self.configuration.data.opmon_uri:
+            print('debug uri:')
             opmon_path = self.configuration.data.opmon_uri['path']
             opmon_type = self.configuration.data.opmon_uri['type']
             opmon_sleep_time = self.configuration.data.opmon_uri['sleep_time']
@@ -191,7 +193,9 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             n_dead = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.DEAD)
             n_session = len({process.process_description.metadata.session for process in results.values})
 
+            print('debug 101: ', self.opmon_publisher)
             if self.opmon_publisher is not None:
+                print('debug pb: ', self.name)
                 self.opmon_publisher.publish(
                     session = self.session,
                     application = self.name,
