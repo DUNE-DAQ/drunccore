@@ -4,7 +4,7 @@ import threading
 from drunc.controller.children_interface.child_node import ChildNode
 from drunc.controller.utils import get_segment_lookup_timeout
 from drunc.exceptions import DruncSetupException
-from drunc.process_manager.configuration import get_cla
+from drunc.process_manager.configuration import get_commandline_parameters
 from drunc.utils.configuration import ConfHandler
 
 import confmodel  # isort: skip
@@ -57,7 +57,7 @@ class ControllerConfHandler(ConfHandler):
             self.this_host = socket.gethostname()
 
     def get_children(
-        self, init_token, without_excluded=False, connectivity_service=None
+        self, init_token, without_excluded=False, connectivity_service=None, session_name=None
     ):
         enabled_only = not without_excluded
         timeout = get_segment_lookup_timeout(
@@ -90,7 +90,13 @@ class ControllerConfHandler(ConfHandler):
                     return
 
             new_node = ChildNode.get_child(
-                cli=get_cla(self.db._obj, session.id, segment.controller),
+                cli=get_commandline_parameters(
+                    db=self.db._obj,
+                    config_filename=self.initial_data,
+                    session_id=session.id,
+                    session_name=session_name,
+                    obj=segment.controller,
+                ),
                 init_token=init_token,
                 name=segment.controller.id,
                 configuration=segment,
@@ -106,7 +112,13 @@ class ControllerConfHandler(ConfHandler):
                     return
 
             new_node = ChildNode.get_child(
-                cli=get_cla(self.db._obj, session.id, app),
+                cli=get_commandline_parameters(
+                    db=self.db._obj,
+                    config_filename=self.initial_data,
+                    session_id=session.id,
+                    session_name=session_name,
+                    obj=app
+                ),
                 name=app.id,
                 configuration=app,
                 fsm_configuration=self.data.controller.fsm,

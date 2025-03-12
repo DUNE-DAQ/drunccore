@@ -66,14 +66,17 @@ class ProcessManagerDriver(GRPCDriver):
         }
 
         apps = collect_apps(
-            db,
-            session_dal,
-            session_dal.segment,
-            env,
+            session_name=session_name,
+            config_filename=oks_conf,
+            db=db,
+            session_obj=session_dal,
+            segment_obj=session_dal.segment,
+            env=env,
             tree_prefix=[
                 0,
             ],
         )
+
         # Next line gets the max of all the first number in the tree id, and adds 1 to it.
         next_tree_id = max([int(app["tree_id"].split(".")[0]) for app in apps]) + 1
         infra_apps = collect_infra_apps(session_dal, env, tree_prefix=[next_tree_id])
@@ -154,7 +157,8 @@ class ProcessManagerDriver(GRPCDriver):
 
     async def boot(
         self,
-        conf: str,
+        conf_file: str,
+        conf_id:str,
         user: str,
         session_name: str,
         log_level: str,
@@ -162,7 +166,7 @@ class ProcessManagerDriver(GRPCDriver):
         **kwargs,
     ) -> ProcessInstance:
         self.log.info(f"Booting session [green]{session_name}[/green]")
-        oks_conf = find_configuration(conf)
+        oks_conf = find_configuration(conf_file)
 
         with tempfile.NamedTemporaryFile(suffix=".data.xml", delete=True) as f:
             f.flush()
@@ -181,10 +185,10 @@ To debug it, close drunc and run the following command:
                 return
 
         db = conffwk.Configuration(f"oksconflibs:{oks_conf}")
-        session_dal = db.get_dal(class_name="Session", uid=session_name)
+        session_dal = db.get_dal(class_name="Session", uid=conf_id)
 
         async for br in self._convert_oks_to_boot_request(
-            oks_conf=conf,
+            oks_conf=conf_file,
             user=user,
             session_dal=session_dal,
             session_name=session_name,

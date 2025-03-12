@@ -119,7 +119,7 @@ class ConfHandler:
 
     def _parse_oks_file(self, oks_path):
         try:
-            self.oks_path = f"oksconflibs:{oks_path}"
+            self.oks_path = oks_path#f"oksconflibs:{oks_path}"
             self.log.debug(f"Using {self.oks_path} to configure")
             self.db = conffwk.Configuration(self.oks_path)
             return self.db.get_dal(
@@ -166,13 +166,13 @@ class ConfHandler:
                     self._post_process_oks(*args, **kwargs)
 
             case ConfTypes.OKSFileName:
-                resolved = find_configuration(self.initial_data)
-                if not os.path.exists(resolved):
-                    raise DruncSetupException(
-                        f"Location {resolved} ({self.initial_data}) is empty!"
-                    )
+                # resolved = find_configuration(self.initial_data)
+                # if not os.path.exists(resolved):
+                #     raise DruncSetupException(
+                #         f"Location {resolved} ({self.initial_data}) is empty!"
+                #     )
 
-                self.data = self._parse_oks_file(resolved)
+                self.data = self._parse_oks_file(self.initial_data)
                 self.type = ConfTypes.PyObject
                 self._post_process_oks(*args, **kwargs)
 
