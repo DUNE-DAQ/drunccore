@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
 from drunc.process_manager.exceptions import UnknownProcessManagerType
-from drunc.utils.configuration import ConfHandler, tarabistouille
+from drunc.utils.configuration import ConfHandler
 from drunc.utils.utils import get_logger
 
 
@@ -64,11 +64,16 @@ def get_commandline_parameters(db, config_filename, session_id, session_name, ob
             break
 
     return [
-        "-s", session_name,
-        "-k", session_id,
-        "-n", obj.id,
-        "-c", f"{control_service_protocol}://{runs_on}:{control_service_port}",
-        "-d", f'oksconflibs:{config_filename}',
+        "-s",
+        session_name,
+        "-k",
+        session_id,
+        "-n",
+        obj.id,
+        "-c",
+        f"{control_service_protocol}://{runs_on}:{control_service_port}",
+        "-d",
+        f"oksconflibs:{config_filename}",
     ]
 
 
