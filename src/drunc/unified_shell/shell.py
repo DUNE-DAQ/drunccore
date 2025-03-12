@@ -1,11 +1,11 @@
 import asyncio
+import getpass
 import logging
 import multiprocessing as mp
 import os
 import sys
 from time import sleep
 from urllib.parse import urlparse
-import getpass
 
 import click
 import click_shell
@@ -42,7 +42,7 @@ from drunc.process_manager.interface.commands import (
 )
 from drunc.process_manager.interface.process_manager import run_pm
 from drunc.unified_shell.commands import boot
-from drunc.utils.configuration import OKSKey, ConfTypes
+from drunc.utils.configuration import ConfTypes, OKSKey
 from drunc.utils.utils import (
     create_logger_handler,
     get_logger,

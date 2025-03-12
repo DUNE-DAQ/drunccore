@@ -3,14 +3,8 @@ from enum import Enum
 from importlib.resources import path
 from urllib.parse import urlparse
 
-# from appmodel import smart_daq_application_construct_commandline_parameters
-# from confmodel import (
-#     daq_application_construct_commandline_parameters,
-#     rc_application_construct_commandline_parameters,
-# )
-
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
-from drunc.process_manager.exceptions import UnknownProcessManagerType, BadConfiguration
+from drunc.process_manager.exceptions import UnknownProcessManagerType
 from drunc.utils.configuration import ConfHandler
 from drunc.utils.utils import get_logger
 

@@ -9,7 +9,7 @@ from druncschema.token_pb2 import Token
 
 from drunc.controller.configuration import ControllerConfHandler
 from drunc.controller.controller import Controller
-from drunc.utils.configuration import OKSKey, ConfTypes
+from drunc.utils.configuration import ConfTypes, OKSKey
 from drunc.utils.utils import (
     create_logger_handler,
     get_logger,
