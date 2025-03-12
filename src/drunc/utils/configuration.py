@@ -1,7 +1,6 @@
 import json
 import os
 from enum import Enum
-from urllib.parse import urlparse
 
 import conffwk
 
@@ -31,15 +30,10 @@ def CLI_to_ConfTypes(scheme: str) -> ConfTypes:
             raise DruncSetupException(f"{scheme} configuration type is not understood")
 
 
-def parse_conf_url(url: str) -> tuple[ConfTypes, str]:
-    u = urlparse(url)
-    # urlparse("scheme://netloc/path;parameters?query#fragment")
-    t = CLI_to_ConfTypes(u.scheme)
-
-    if u.path:  # ugly ugly ugly
-        return f"{u.netloc}{u.path}", t
-    else:
-        return f"{u.netloc}", t
+def parse_conf_url(url: str) -> tuple[str, ConfTypes]:
+    scheme, filename = url.split(":")
+    t = CLI_to_ConfTypes(scheme)
+    return url, t
 
 
 class ConfigurationNotFound(DruncSetupException):
@@ -47,31 +41,6 @@ class ConfigurationNotFound(DruncSetupException):
         super().__init__(
             f"The configuration '{requested_path}' is not in $DUNEDAQ_DB_PATH, perhaps you forgot to 'dbt-workarea-env && dbt-build'?"
         )
-
-
-def find_configuration(path: str) -> str:
-    log = get_logger("utils.find_configuration")
-    expanded_path = expand_path(urlparse(path).path, turn_to_abs_path=False)
-    if os.path.exists(expanded_path):
-        return expanded_path
-
-    configuration_files = []
-    for dir in os.getenv("DUNEDAQ_DB_PATH").split(":"):
-        tentative = os.path.join(dir, path)
-
-        if os.path.exists(tentative):
-            configuration_files += [tentative]
-
-    if len(configuration_files) > 1:
-        l = "\n - ".join(configuration_files)
-        log.warning(
-            f"The configuration '{path}' matches >1 configurations in $DUNEDAQ_SHARED_PATH:\n - {l}\n:heavy_exclamation_mark:Using the first one: :heavy_exclamation_mark:"
-        )
-
-    if not configuration_files:
-        raise ConfigurationNotFound(path)
-
-    return configuration_files[0]
 
 
 class ConfTypeNotSupported(DruncSetupException):
@@ -119,7 +88,7 @@ class ConfHandler:
 
     def _parse_oks_file(self, oks_path):
         try:
-            self.oks_path = oks_path#f"oksconflibs:{oks_path}"
+            self.oks_path = oks_path
             self.log.debug(f"Using {self.oks_path} to configure")
             self.db = conffwk.Configuration(self.oks_path)
             return self.db.get_dal(
@@ -166,12 +135,6 @@ class ConfHandler:
                     self._post_process_oks(*args, **kwargs)
 
             case ConfTypes.OKSFileName:
-                # resolved = find_configuration(self.initial_data)
-                # if not os.path.exists(resolved):
-                #     raise DruncSetupException(
-                #         f"Location {resolved} ({self.initial_data}) is empty!"
-                #     )
-
                 self.data = self._parse_oks_file(self.initial_data)
                 self.type = ConfTypes.PyObject
                 self._post_process_oks(*args, **kwargs)

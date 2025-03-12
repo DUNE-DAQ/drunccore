@@ -73,7 +73,7 @@ def get_commandline_parameters(db, config_filename, session_id, session_name, ob
         "-c",
         f"{control_service_protocol}://{runs_on}:{control_service_port}",
         "-d",
-        f"oksconflibs:{config_filename}",
+        config_filename,
     ]
 
 

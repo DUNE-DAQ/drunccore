@@ -118,15 +118,20 @@ def unified_shell(
         internal_pm = False
 
     # Set up process_manager logger
-    # conf = find_configuration(configuration_file)
-    ctx.obj.configuration_file = configuration_file
+    ctx.obj.configuration_file = f"oksconflibs:{configuration_file}"
     ctx.obj.configuration_id = configuration_id
-    ctx.obj.session_name = session_name if session_name is not None else f"{configuration_id}-{getpass.getuser()}"
-    db = conffwk.Configuration(f"oksconflibs:{configuration_file}")
-    app_log_path = db.get_dal(class_name="Session", uid=ctx.obj.configuration_id).log_path
+    ctx.obj.session_name = (
+        session_name
+        if session_name is not None
+        else f"{configuration_id}-{getpass.getuser()}"
+    )
+    db = conffwk.Configuration(ctx.obj.configuration_file)
+    app_log_path = db.get_dal(
+        class_name="Session", uid=ctx.obj.configuration_id
+    ).log_path
 
     unified_shell_log.info(
-        f'Setting up to use [green]process_manager[/green] with configuration [green]{process_manager}[/green] and [green]configuration id "{configuration_id}"[/green] from [green]{configuration_file}[/green]'
+        f'Setting up to use [green]process_manager[/green] with configuration [green]{process_manager}[/green] and [green]configuration id "{configuration_id}"[/green] from [green]{ctx.obj.configuration_file}[/green]'
     )
 
     if internal_pm:
@@ -238,15 +243,14 @@ def unified_shell(
     # We instantiate a stateful node which has the same configuration as the one from this session
     # Let's do this
     unified_shell_log.debug("Retrieving the session database")
-    db = conffwk.Configuration(f"oksconflibs:{ctx.obj.configuration_file}")
+    db = conffwk.Configuration(ctx.obj.configuration_file)
     session_dal = db.get_dal(class_name="Session", uid=ctx.obj.configuration_id)
 
-    #conf_path, conf_type = parse_conf_url(f"oksconflibs:{ctx.obj.configuration_file}")
     controller_name = session_dal.segment.controller.id
     unified_shell_log.debug("Initializing the [green]ControllerConfHandler[/green]")
     controller_configuration = ControllerConfHandler(
         type=ConfTypes.OKSFileName,
-        data=f"oksconflibs:{ctx.obj.configuration_file}",
+        data=ctx.obj.configuration_file,
         oks_key=OKSKey(
             schema_file="schema/confmodel/dunedaq.schema.xml",
             class_name="RCApplication",

@@ -63,7 +63,10 @@ def run_pm(
     log.debug(f"Using '{pm_conf}' as the ProcessManager configuration")
 
     conf_path, conf_type = parse_conf_url(pm_conf)
-    pmch = ProcessManagerConfHandler(log_path=log_path, type=conf_type, data=conf_path)
+    pmch = ProcessManagerConfHandler(
+        log_path=log_path, type=conf_type, data=conf_path.split(":")[1]
+    )
+
     for key, value in pmch.data.environment.items():
         os.environ[key] = value
 

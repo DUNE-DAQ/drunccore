@@ -14,7 +14,6 @@ from drunc.fsm.exceptions import (
     CannotUpdateStopTime,
     DotDruncJsonIncorrectFormat,
 )
-from drunc.utils.configuration import find_configuration
 from drunc.utils.utils import get_logger
 
 
@@ -39,7 +38,7 @@ class DBRunRegistry(FSMAction):
         self.run_number = _input_data[
             "run"
         ]  # Seems like run_number isn't in _input_data in post_drain_dataflow so need to initialise it here
-        run_configuration = find_configuration(_context.configuration.initial_data)
+
         run_type = _input_data.get("production_vs_test", "TEST")
         det_id = _context.configuration.db.get_dal(
             class_name="Session", uid=_context.configuration.oks_key.session
@@ -57,7 +56,7 @@ class DBRunRegistry(FSMAction):
         json_name = f_json.name
         entry_point_name = f_entry_point.name
 
-        consolidate_db(run_configuration, xml_name)
+        consolidate_db(_context.configuration.initial_data.split(":")[1], xml_name)
         jsonify_xml_data(xml_name, json_name)
         with open(entry_point_name, "w") as f:
             f.write(_context.configuration.oks_key.session)

@@ -1,6 +1,5 @@
 from drunc.fsm.core import FSMAction
 from drunc.fsm.exceptions import EnableDFOFailed
-from drunc.utils.configuration import find_configuration
 
 
 class EnableDFO(FSMAction):
@@ -18,7 +17,7 @@ class EnableDFO(FSMAction):
         # Validate DFO Name
         import conffwk
 
-        db = conffwk.Configuration(f"oksconflibs:{configuration}")
+        db = conffwk.Configuration(configuration)
         dfos = db.get_dals(class_name="DFOApplication")
         dfo_found = False
         for dfo in dfos:
@@ -30,7 +29,6 @@ class EnableDFO(FSMAction):
             raise EnableDFOFailed(dfo_name)
 
     def pre_enable_dfo(self, _input_data, _context, dfo_name: str, **kwargs):
-        run_configuration = find_configuration(_context.configuration.initial_data)
-        self.validate_enable_dfo(dfo_name, run_configuration)
+        self.validate_enable_dfo(dfo_name, _context.configuration.initial_data)
         _input_data["dfo"] = dfo_name
         return _input_data

@@ -9,7 +9,7 @@ def test_issue309(load_test_config):
     from drunc.utils.configuration import OKSKey, parse_conf_url
 
     conf_path, conf_type = parse_conf_url(
-        "oksconflibs://many_recursive_segments.data.xml"
+        "oksconflibs:many_recursive_segments.data.xml"
     )
     controller_id = "controller-3"
     controller_configuration = ControllerConfHandler(

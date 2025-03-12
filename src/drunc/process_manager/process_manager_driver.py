@@ -30,7 +30,6 @@ from drunc.process_manager.oks_parser import (
     collect_variables,
 )
 from drunc.process_manager.utils import get_log_path, get_rte_script
-from drunc.utils.configuration import find_configuration
 from drunc.utils.shell_utils import GRPCDriver
 from drunc.utils.utils import (
     get_control_type_and_uri_from_connectivity_service,
@@ -158,7 +157,7 @@ class ProcessManagerDriver(GRPCDriver):
     async def boot(
         self,
         conf_file: str,
-        conf_id:str,
+        conf_id: str,
         user: str,
         session_name: str,
         log_level: str,
@@ -166,25 +165,25 @@ class ProcessManagerDriver(GRPCDriver):
         **kwargs,
     ) -> ProcessInstance:
         self.log.info(f"Booting session [green]{session_name}[/green]")
-        oks_conf = find_configuration(conf_file)
 
         with tempfile.NamedTemporaryFile(suffix=".data.xml", delete=True) as f:
             f.flush()
             f.seek(0)
             fname = f.name
             try:
-                consolidate_db(oks_conf, f"{fname}")
+                conf_file_no_scheme = conf_file.replace("oksconflibs:", "")
+                consolidate_db(conf_file_no_scheme, f"{fname}")
             except Exception as e:
                 self.log.critical(f"""\nInvalid configuration passed (cannot consolidate your configuration)
 {e}
 To debug it, close drunc and run the following command:
 
-[yellow]oks_dump --files-only {oks_conf}[/]
+[yellow]oks_dump --files-only {conf_file_no_scheme}[/]
 
 """)
                 return
 
-        db = conffwk.Configuration(f"oksconflibs:{oks_conf}")
+        db = conffwk.Configuration(conf_file)
         session_dal = db.get_dal(class_name="Session", uid=conf_id)
 
         async for br in self._convert_oks_to_boot_request(
