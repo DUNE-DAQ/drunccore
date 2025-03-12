@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
 from drunc.process_manager.exceptions import UnknownProcessManagerType
-from drunc.utils.configuration import ConfHandler
+from drunc.utils.configuration import ConfHandler, tarabistouille
 from drunc.utils.utils import get_logger
 
 
