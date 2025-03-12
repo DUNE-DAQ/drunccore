@@ -176,27 +176,30 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
 
         self.stop_event = threading.Event()
-        self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(user = self.session),opmon_sleep_time), daemon=True)
+        self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(names = [".*"]),opmon_sleep_time), daemon=True)
         self.thread.start()
 
+    def __del__(self):
+        self.stop_event.set()
+        self.thread.join()
 
     def run_ps(self, q:ProcessQuery, sleep_time:float = 5):
         while not self.stop_event.is_set():
             results = self._ps_impl(q)
-            #n_process = len(results.values)
+            
             n_running = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.RUNNING)
             n_dead = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.DEAD)
+            n_session = len({process.process_description.metadata.session for process in results.values})
 
             if self.opmon_publisher is not None:
                 self.opmon_publisher.publish(
                     session = self.session,
                     application = self.name,
-                    message = ProcessStatus(n_running = n_running,n_dead = n_dead)    
+                    message = ProcessStatus(n_running = n_running,n_dead = n_dead, n_session = n_session)    
                     )
             time.sleep(sleep_time)
     
     
-
     """
     A couple of simple pass-through functions to the broadcasting service
     """
@@ -287,9 +290,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     )  # 2nd step
     @unpack_request_data_to(None)  # 3rd step
     def terminate(self) -> Response:
-        self.log.debug(f"{self.name} terminating")
-        self.stop_event.set()
-        self.thread.join()
+        self.log.debug(f"{self.name} terminating") 
         try:
             resp = self._terminate_impl()
             return Response(
