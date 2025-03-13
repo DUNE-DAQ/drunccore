@@ -431,7 +431,7 @@ class RESTAPIChildNode(ClientSideChild):
         try:
             self.commander.send_command(
                 cmd_id=command_name,
-                module_data=cmd_data["modules"],
+                module_data=cmd_data,
                 entry_state=entry_state,
                 exit_state=exit_state,
             )
