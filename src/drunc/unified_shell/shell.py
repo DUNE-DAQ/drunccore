@@ -225,7 +225,10 @@ def unified_shell(
         csc = ConnectivityServiceClient(
             ctx.obj.session_name, connectivity_service_address
         )
-        csc.retract(".*", fail_quickly=True)
+        unified_shell_log.info(
+            f"Retracting the session {ctx.obj.session_name} from the connectivity service"
+        )
+        csc.retract_partition(fail_quickly=True)
 
         logging.shutdown()
 
