@@ -57,7 +57,11 @@ class ControllerConfHandler(ConfHandler):
             self.this_host = socket.gethostname()
 
     def get_children(
-        self, init_token, without_excluded=False, connectivity_service=None, session_name=None
+        self,
+        init_token,
+        without_excluded=False,
+        connectivity_service=None,
+        session_name=None,
     ):
         enabled_only = not without_excluded
         timeout = get_segment_lookup_timeout(
@@ -91,7 +95,7 @@ class ControllerConfHandler(ConfHandler):
 
             new_node = ChildNode.get_child(
                 cli=get_commandline_parameters(
-                    db=self.db._obj,
+                    db=self.db,
                     config_filename=self.initial_data,
                     session_id=session.id,
                     session_name=session_name,
@@ -111,14 +115,16 @@ class ControllerConfHandler(ConfHandler):
                 if confmodel.component_disabled(self.db._obj, session.id, app.id):
                     return
 
+            commandline_parameters = get_commandline_parameters(
+                db=self.db,
+                config_filename=self.initial_data,
+                session_id=session.id,
+                session_name=session_name,
+                obj=app,
+            )
+            self.log.info(f"commandline_parameters: {commandline_parameters}")
             new_node = ChildNode.get_child(
-                cli=get_commandline_parameters(
-                    db=self.db._obj,
-                    config_filename=self.initial_data,
-                    session_id=session.id,
-                    session_name=session_name,
-                    obj=app
-                ),
+                cli=commandline_parameters,
                 name=app.id,
                 configuration=app,
                 fsm_configuration=self.data.controller.fsm,

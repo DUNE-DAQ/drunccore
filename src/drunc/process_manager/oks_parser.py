@@ -80,11 +80,11 @@ def collect_apps(
             "name": controller.id,
             "type": controller.application_name,
             "args": get_commandline_parameters(
-                db=db._obj,
+                db=db,
                 config_filename=config_filename,
                 session_id=session_obj.id,
                 session_name=session_name,
-                obj=controller
+                obj=controller,
             ),
             "restriction": host,
             "host": host,
@@ -111,7 +111,7 @@ def collect_apps(
                 session_obj=session_obj,
                 segment_obj=sub_segment_obj,
                 env=env,
-                tree_prefix=new_tree_prefix
+                tree_prefix=new_tree_prefix,
             )
         except Exception as e:
             log.exception(e)
@@ -144,11 +144,11 @@ def collect_apps(
 
         host = app.runs_on.runs_on.id
         args = get_commandline_parameters(
-            db=db._obj,
+            db=db,
             config_filename=config_filename,
             session_id=session_obj.id,
             session_name=session_name,
-            obj=app
+            obj=app,
         )
         log.debug(f"Collecting app {app.id} with args {args}")
 
