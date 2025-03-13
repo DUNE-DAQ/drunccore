@@ -63,7 +63,7 @@ def get_commandline_parameters(db, config_filename, session_id, session_name, ob
             control_service_protocol = svc.protocol
             break
 
-    return [
+    commandline_parameters = [
         "-s",
         session_name,
         "-k",
@@ -75,6 +75,13 @@ def get_commandline_parameters(db, config_filename, session_id, session_name, ob
         "-d",
         config_filename,
     ]
+    if "RCApplication" in obj.oksTypes():
+        commandline_parameters += [
+            "-l",
+            db.get_dal("Session", session_id).controller_log_level,
+        ]
+
+    return commandline_parameters
 
 
 def get_process_manager_configuration(process_manager_conf_filename: str) -> str:
