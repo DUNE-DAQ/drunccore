@@ -43,7 +43,9 @@ async def boot(
 ) -> None:
     log = get_logger("unified_shell.boot")
 
-    processes = await obj.get_driver("process_manager").ps(ProcessQuery(user=user, session=session_name))
+    processes = await obj.get_driver("process_manager").ps(
+        ProcessQuery(user=user, session=session_name)
+    )
 
     if len(processes.data.values) > 0:
         click.confirm(
@@ -53,6 +55,8 @@ async def boot(
 
     if session_name is None:
         session_name = obj.session_name
+    else:
+        obj.session_name = session_name
 
     try:
         results = obj.get_driver("process_manager").boot(

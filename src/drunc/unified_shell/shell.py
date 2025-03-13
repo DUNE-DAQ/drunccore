@@ -11,6 +11,7 @@ import click
 import click_shell
 import conffwk
 
+from drunc.connectivity_service.client import ConnectivityServiceClient
 from drunc.controller.configuration import ControllerConfHandler
 from drunc.controller.interface.commands import (
     connect,
@@ -126,9 +127,10 @@ def unified_shell(
         else f"{configuration_id}-{getpass.getuser()}"
     )
     db = conffwk.Configuration(ctx.obj.configuration_file)
-    app_log_path = db.get_dal(
-        class_name="Session", uid=ctx.obj.configuration_id
-    ).log_path
+    session_dal = db.get_dal(class_name="Session", uid=ctx.obj.configuration_id)
+    app_log_path = session_dal.log_path
+
+    connectivity_service_address = f"{session_dal.connectivity_service.host}:{session_dal.connectivity_service.service.port}"
 
     unified_shell_log.info(
         f'Setting up to use [green]process_manager[/green] with configuration [green]{process_manager}[/green] and [green]configuration id "{configuration_id}"[/green] from [green]{ctx.obj.configuration_file}[/green]'
@@ -219,6 +221,12 @@ def unified_shell(
         if internal_pm:
             ctx.obj.pm_process.terminate()
             ctx.obj.pm_process.join()
+
+        csc = ConnectivityServiceClient(
+            ctx.obj.session_name, connectivity_service_address
+        )
+        csc.retract(".*", fail_quickly=True)
+
         logging.shutdown()
 
     ctx.call_on_close(cleanup)

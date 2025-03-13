@@ -17,9 +17,11 @@ class ConnectivityServiceClient:
             # assume the simplest case here
             self.address = f"http://{address}"
 
-        self.log.debug(f"Connectivity service address: {self.address}, session: {self.session}")
+        self.log.debug(
+            f"Connectivity service address: {self.address}, session: {self.session}"
+        )
 
-    def retract(self, uid):
+    def retract(self, uid, fail_quickly=False):
         data = {
             "partition": self.session,
             "connections": [
@@ -52,9 +54,23 @@ class ConnectivityServiceClient:
 
                 r.raise_for_status()
                 break
+
             except (HTTPError, ConnectionError):
                 time.sleep(0.5)
                 continue
+
+            except Exception as e:
+                if fail_quickly:
+                    self.log.info(
+                        f"Could not retract from session {self.session} on the connectivity service at the address {self.address}"
+                    )
+                    self.log.debug(e)
+                    return
+                raise e
+
+            finally:
+                if fail_quickly:
+                    return
 
     def resolve(self, uid_regex: str, data_type: str) -> dict:
         data = {"data_type": data_type, "uid_regex": uid_regex}
