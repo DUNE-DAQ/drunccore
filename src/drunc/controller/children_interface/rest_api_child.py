@@ -241,10 +241,10 @@ class AppCommander:
             return False
 
     def send_command(
-        self, cmd_id: str, cmd_data: dict, entry_state="ANY", exit_state="ANY"
+        self, cmd_id: str, module_data: dict, entry_state="ANY", exit_state="ANY"
     ):
         # here we go again...
-        module_data = {"modules": [{"data": cmd_data, "match": ""}]}
+        # module_data = {"modules": [{"data": cmd_data, "match": ""}]}
 
         cmd = {
             "id": cmd_id,
@@ -431,7 +431,7 @@ class RESTAPIChildNode(ClientSideChild):
         try:
             self.commander.send_command(
                 cmd_id=command_name,
-                cmd_data=cmd_data,
+                module_data=cmd_data["modules"],
                 entry_state=entry_state,
                 exit_state=exit_state,
             )
@@ -467,7 +467,7 @@ class RESTAPIChildNode(ClientSideChild):
                 print_traceback,  # for good measure, since I'm not sure the stack will be printed in propagate_to_child in the controller
             )
 
-            print_traceback()
+            print_traceback(e)
             raise e
 
         return response
@@ -482,7 +482,7 @@ class RESTAPIChildNode(ClientSideChild):
         try:
             self.commander.send_command(
                 cmd_id=data.command_name,
-                cmd_data=json.loads(data.data),
+                module_data={"modules": [{"data": json.loads(data.data), "match": ""}]},
                 entry_state=entry_state.upper(),
                 exit_state=exit_state.upper(),
             )
