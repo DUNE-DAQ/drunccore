@@ -147,12 +147,6 @@ class ThreadPinningFailed(FSMException):
         super().__init__(self.message)
 
 
-class EnableDFOFailed(FSMException):
-    def __init__(self, dfo):
-        self.message = f'Could not enable DFO "{dfo}" failed'
-        super().__init__(self.message)
-
-
 class CannotGetSoftwareVersion(FSMException):
     def __init__(self):
         self.message = "RunRegistryDB: dunedaq version not in the variable env DUNE_DAQ_BASE_RELEASE! Exit drunc and export DUNE_DAQ_BASE_RELEASE=dunedaq-vX.XX.XX\n"
