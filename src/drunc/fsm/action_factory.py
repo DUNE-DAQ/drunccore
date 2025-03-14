@@ -87,10 +87,6 @@ class FSMActionFactory:
                 iface = MasterSendFLCommand(configuration)
             case "trigger-rate-specifier":
                 iface = TriggerRateSpecifier(configuration)
-            case "enable-dfo":
-                from drunc.fsm.actions.enable_dfo import EnableDFO
-
-                iface = EnableDFO(configuration)
             case _:
                 raise fsme.UnknownAction(action_name)
 
