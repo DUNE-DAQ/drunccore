@@ -18,13 +18,6 @@ from drunc.utils.utils import get_logger, log_levels, run_coroutine
     help="Create the processes for a particular user (default $USER)",
 )
 @click.option(
-    "-s",
-    "--session-name",
-    type=str,
-    default=None,
-    help="Override the session name",
-)
-@click.option(
     "-l",
     "--log-level",
     type=click.Choice(log_levels.keys(), case_sensitive=False),
@@ -37,11 +30,11 @@ from drunc.utils.utils import get_logger, log_levels, run_coroutine
 async def boot(
     obj: ProcessManagerContext,
     user: str,
-    session_name: str,
     log_level: str,
     override_logs: bool,
 ) -> None:
     log = get_logger("unified_shell.boot")
+    session_name = obj.session_name
 
     processes = await obj.get_driver("process_manager").ps(
         ProcessQuery(user=user, session=session_name)
@@ -52,11 +45,6 @@ async def boot(
             f"You already have {len(processes.data.values)} processes running in session {session_name}, are you sure you want to boot a session?",
             abort=True,
         )
-
-    if session_name is None:
-        session_name = obj.session_name
-    else:
-        obj.session_name = session_name
 
     try:
         results = obj.get_driver("process_manager").boot(

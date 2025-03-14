@@ -1,5 +1,4 @@
 import asyncio
-import getpass
 import logging
 import multiprocessing as mp
 import os
@@ -70,13 +69,7 @@ from drunc.utils.utils import (
 @click.argument("process-manager", type=str, nargs=1)
 @click.argument("configuration-file", type=str, nargs=1)
 @click.argument("configuration-id", type=str, nargs=1)
-@click.option(
-    "-s",
-    "--session-name",
-    type=str,
-    default=None,
-    help="Session name",
-)
+@click.argument("session-name", type=str, nargs=1)
 @click.option(
     "-o/-no",
     "--override-logs/--no-override-logs",
@@ -121,11 +114,8 @@ def unified_shell(
     # Set up process_manager logger
     ctx.obj.configuration_file = f"oksconflibs:{configuration_file}"
     ctx.obj.configuration_id = configuration_id
-    ctx.obj.session_name = (
-        session_name
-        if session_name is not None
-        else f"{configuration_id}-{getpass.getuser()}"
-    )
+    ctx.obj.session_name = session_name
+
     db = conffwk.Configuration(ctx.obj.configuration_file)
     session_dal = db.get_dal(class_name="Session", uid=ctx.obj.configuration_id)
     app_log_path = session_dal.log_path
