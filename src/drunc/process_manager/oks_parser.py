@@ -5,7 +5,7 @@ import conffwk
 import confmodel
 
 from drunc.exceptions import DruncException
-from drunc.process_manager.configuration import get_cla
+from drunc.process_manager.configuration import get_commandline_parameters
 from drunc.utils.utils import get_logger
 
 dal = conffwk.dal.module("x", "schema/confmodel/dunedaq.schema.xml")
@@ -33,9 +33,11 @@ class EnvironmentVariableCannotBeSet(DruncException):
 
 # Recursively process all Segments in given Segment extracting Applications
 def collect_apps(
+    config_filename,
+    session_name,
     db,
-    session,
-    segment,
+    session_obj,
+    segment_obj,
     env: Dict[str, str],
     tree_prefix=[
         0,
@@ -44,8 +46,8 @@ def collect_apps(
     """
     ! Recustively collect (daq) application belonging to segment and its subsegments
 
-    @param session  The session the segment belongs to
-    @param segment  Segment to collect applications from
+    @param session_obj  The session the segment belongs to
+    @param segment_obj  Segment to collect applications from
 
     @return The list of dictionaries holding application attributs
 
@@ -61,12 +63,12 @@ def collect_apps(
     else:
         defenv["DUNEDAQ_DB_PATH"] = DB_PATH
 
-    collect_variables(session.environment, defenv)
+    collect_variables(session_obj.environment, defenv)
 
     apps = []
 
     # Add controller for this segment to list of apps
-    controller = segment.controller
+    controller = segment_obj.controller
     rc_env = defenv.copy()
     collect_variables(controller.application_environment, rc_env)
     rc_env["DUNEDAQ_APPLICATION_NAME"] = controller.id
@@ -77,7 +79,13 @@ def collect_apps(
         {
             "name": controller.id,
             "type": controller.application_name,
-            "args": get_cla(db._obj, session.id, controller),
+            "args": get_commandline_parameters(
+                db=db,
+                config_filename=config_filename,
+                session_id=session_obj.id,
+                session_name=session_name,
+                obj=controller,
+            ),
             "restriction": host,
             "host": host,
             "env": rc_env,
@@ -87,20 +95,36 @@ def collect_apps(
     )
 
     # Recurse over nested segments
-    for idx, seg in enumerate(segment.segments):
-        if confmodel.component_disabled(db._obj, session.id, seg.id):
-            log.debug(f"Ignoring segment '{seg.id}' as it is disabled")
+    for idx, sub_segment_obj in enumerate(segment_obj.segments):
+        log.debug(f"Considering segment {sub_segment_obj.id}")
+        if confmodel.component_disabled(db._obj, session_obj.id, sub_segment_obj.id):
+            log.debug(f"Ignoring segment '{sub_segment_obj.id}' as it is disabled")
             continue
 
+        log.debug(f"Collecting apps for segment {sub_segment_obj.id}")
         new_tree_prefix = tree_prefix + [idx]
-        for app in collect_apps(db, session, seg, env, new_tree_prefix):
+        try:
+            sub_apps = collect_apps(
+                session_name=session_name,
+                config_filename=config_filename,
+                db=db,
+                session_obj=session_obj,
+                segment_obj=sub_segment_obj,
+                env=env,
+                tree_prefix=new_tree_prefix,
+            )
+        except Exception as e:
+            log.exception(e)
+            raise e
+        for app in sub_apps:
             apps.append(app)
 
     # Get all the enabled applications of this segment
     app_index = 0
-    for app in segment.applications:
+    for app in segment_obj.applications:
+        log.debug(f"Considering app {app.id}")
         if "Component" in app.oksTypes():
-            enabled = not confmodel.component_disabled(db._obj, session.id, app.id)
+            enabled = not confmodel.component_disabled(db._obj, session_obj.id, app.id)
             log.debug(f"{app.id} {enabled=}")
         else:
             enabled = True
@@ -119,11 +143,20 @@ def collect_apps(
         app_tree_id_str = ".".join(map(str, tree_prefix + [app_index]))
 
         host = app.runs_on.runs_on.id
+        args = get_commandline_parameters(
+            db=db,
+            config_filename=config_filename,
+            session_id=session_obj.id,
+            session_name=session_name,
+            obj=app,
+        )
+        log.debug(f"Collecting app {app.id} with args {args}")
+
         apps.append(
             {
                 "name": app.id,
                 "type": app.application_name,
-                "args": get_cla(db._obj, session.id, app),
+                "args": args,
                 "restriction": host,
                 "host": host,
                 "env": app_env,

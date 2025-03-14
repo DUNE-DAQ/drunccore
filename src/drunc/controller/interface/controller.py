@@ -9,7 +9,7 @@ from druncschema.token_pb2 import Token
 
 from drunc.controller.configuration import ControllerConfHandler
 from drunc.controller.controller import Controller
-from drunc.utils.configuration import OKSKey, find_configuration, parse_conf_url
+from drunc.utils.configuration import ConfTypes, OKSKey
 from drunc.utils.utils import (
     create_logger_handler,
     get_logger,
@@ -21,10 +21,42 @@ from drunc.utils.utils import (
 
 
 @click.command()
-@click.argument("boot-configuration", type=str)
-@click.argument("command-facility", type=str, callback=validate_command_facility)
-@click.argument("application_name", type=str)
-@click.argument("session", type=str)
+@click.option(
+    "-s",
+    "--sessionName",
+    type=str,
+    required=True,
+    help="Name of session e.g. 'local-2x3-config-username'"
+)
+@click.option(
+    "-k",
+    "--configurationId",
+    type=str,
+    required=True,
+    help="Id of session in configuration, e.g. 'local-2x3-config'"
+)
+@click.option(
+    "-n",
+    "--name",
+    type=str,
+    required=True,
+    help="Name of application, e.g. 'root-controller'"
+)
+@click.option(
+    "-c",
+    "--commandFacility",
+    type=str,
+    callback=validate_command_facility,
+    required=True,
+    help="Facility through which commands should be sent, e.g. grpc://localhost:12345"
+)
+@click.option(
+    "-d",
+    "--configurationService",
+    type=str,
+    required=True,
+    help="Service to retrieve configuration, e.g. file://config/daqsystemtest/example-configs.data.xml"
+)
 @click.option(
     "-l",
     "--log-level",
@@ -33,19 +65,15 @@ from drunc.utils.utils import (
     help="Set the log level",
 )
 def controller_cli(
-    boot_configuration: str,
-    command_facility: str,
-    application_name: str,
-    session: str,
+    sessionname: str,
+    configurationservice: str,
+    commandfacility: str,
+    name: str,
+    configurationid: str,
     log_level: str,
 ):
     """
     Spawns a single controller defined in the boot-configuration file, in a given session identified by its name, with communications defined through the command-facility.\n
-    Arguments\n
-    boot-configuration - Path to boot configuration, searches DUNEDAQ_DB_PATH if not absolute, e.g. 'config/daqsystemtest/example-configs.data.xml'\n
-    command-facility - Facility through which commands should be sent, e.g. grpc://localhost:12345\n
-    application_name - Name of application, e.g. 'root-controller'\n
-    session - Name of session in boot-configuration, e.g. 'local-2x3-config'
     """
 
     setup_root_logger(log_level)
@@ -60,22 +88,22 @@ def controller_cli(
         token="",
     )
 
-    boot_configuration = find_configuration(boot_configuration)
-    conf_path, conf_type = parse_conf_url(boot_configuration)
     controller_configuration = ControllerConfHandler(
-        type=conf_type,
-        data=conf_path,
+        type=ConfTypes.OKSFileName,
+        data=configurationservice,
         oks_key=OKSKey(
             schema_file="schema/confmodel/dunedaq.schema.xml",
             class_name="RCApplication",
-            obj_uid=application_name,
-            session=session,  # some of the function for enable/disable require the full dal of the session
+            obj_uid=name,
+            session=configurationid,  # some of the function for enable/disable require the full dal of the session
         ),
     )
 
+    commandfacility = resolve_localhost_and_127_ip_to_network_ip(commandfacility)
+
     ctrlr = Controller(
-        name=application_name,
-        session=session,
+        name=name,
+        session=sessionname,
         configuration=controller_configuration,
         token=token,
     )
@@ -111,10 +139,8 @@ def controller_cli(
     signal.signal(signal.SIGINT, shutdown)
 
     try:
-        command_facility = resolve_localhost_and_127_ip_to_network_ip(command_facility)
-        server_name = command_facility.split(":")[0]
-        server, port = serve(command_facility)
-
+        server, port = serve(commandfacility)
+        server_name = commandfacility.split(":")[0]
         ctrlr.advertise_control_address(f"grpc://{server_name}:{port}")
         server.wait_for_termination(timeout=None)
 

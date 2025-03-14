@@ -15,7 +15,7 @@ from drunc.utils.utils import get_logger, log_levels, run_coroutine
     "--user",
     type=str,
     default=getpass.getuser(),
-    help="Select the process of a particular user (default $USER)",
+    help="Create the processes for a particular user (default $USER)",
 )
 @click.option(
     "-l",
@@ -34,20 +34,24 @@ async def boot(
     override_logs: bool,
 ) -> None:
     log = get_logger("unified_shell.boot")
+    session_name = obj.session_name
 
-    processes = await obj.get_driver("process_manager").ps(ProcessQuery(user=user))
+    processes = await obj.get_driver("process_manager").ps(
+        ProcessQuery(user=user, session=session_name)
+    )
 
     if len(processes.data.values) > 0:
         click.confirm(
-            f"You already have {len(processes.data.values)} processes running, are you sure you want to boot a session?",
+            f"You already have {len(processes.data.values)} processes running in session {session_name}, are you sure you want to boot a session?",
             abort=True,
         )
 
     try:
         results = obj.get_driver("process_manager").boot(
-            conf=obj.boot_configuration,
+            conf_file=obj.configuration_file,
+            conf_id=obj.configuration_id,
             user=user,
-            session_name=obj.session_name,
+            session_name=session_name,
             log_level=log_level,
             override_logs=override_logs,
         )

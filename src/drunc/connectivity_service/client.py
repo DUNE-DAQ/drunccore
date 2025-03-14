@@ -17,13 +17,17 @@ class ConnectivityServiceClient:
             # assume the simplest case here
             self.address = f"http://{address}"
 
-    def retract(self, uid):
+        self.log.debug(
+            f"Connectivity service address: {self.address}, session: {self.session}"
+        )
+
+    def retract(self, uid, fail_quickly=False):
         data = {
             "partition": self.session,
             "connections": [
                 {
                     "connection_id": uid,
-                    "data_type": "run-control-messages",
+                    "data_type": "RunControlMessage",
                 }
             ],
         }
@@ -44,15 +48,75 @@ class ConnectivityServiceClient:
 
                 if r.status_code == 404:
                     self.log.warning(
-                        f"Connection '{uid}' not found on the application registry"
+                        f"Connection '{uid}' not found on the connectivity service"
                     )
                     break
 
                 r.raise_for_status()
                 break
-            except (HTTPError, ConnectionError):
-                time.sleep(0.5)
-                continue
+
+            except (HTTPError, ConnectionError) as e:
+                self.log.debug(e)
+                if not fail_quickly:
+                    time.sleep(0.5)
+
+            except Exception as e:
+                if fail_quickly:
+                    self.log.info(
+                        f"Could not retract {uid} from session {self.session} on the connectivity service at the address {self.address}"
+                    )
+                    self.log.debug(e)
+                else:
+                    raise e
+
+            finally:
+                if fail_quickly:
+                    return
+
+    def retract_partition(self, fail_quickly=False):
+        data = {"partition": self.session}
+        for i in range(50):
+            try:
+                self.log.debug(
+                    f"Retracting session {self.session} on the connectivity service, attempt {i + 1}: {data=}"
+                )
+
+                r = http_post(
+                    self.address + "/retract-partition",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
+                    as_json=True,
+                    timeout=0.5,
+                    ignore_errors=True,
+                )
+
+                if r.status_code == 404:
+                    self.log.warning(
+                        f"Session {self.session} not found on the connectivity service"
+                    )
+                    break
+
+                r.raise_for_status()
+                print(r.text)
+                break
+
+            except (HTTPError, ConnectionError) as e:
+                self.log.debug(e)
+                if not fail_quickly:
+                    time.sleep(0.5)
+
+            except Exception as e:
+                if fail_quickly:
+                    self.log.info(
+                        f"Could not retract session {self.session} on the connectivity service at the address {self.address}"
+                    )
+                    self.log.debug(e)
+                else:
+                    raise e
+
+            finally:
+                if fail_quickly:
+                    return
 
     def resolve(self, uid_regex: str, data_type: str) -> dict:
         data = {"data_type": data_type, "uid_regex": uid_regex}

@@ -175,6 +175,7 @@ class Controller(ControllerServicer):
         self.children_nodes = self.configuration.get_children(
             init_token=self.actor.get_token(),
             connectivity_service=self.connectivity_service,
+            session_name=self.session,
         )
 
         children_statuses = self.propagate_to_list(

@@ -13,7 +13,8 @@ class UnifiedShellContext(ShellContext):  # boilerplatefest
         self.pm_process = None
         self.address_pm = ""
         self.address_controller = ""
-        self.boot_configuration = ""
+        self.configuration_file = ""
+        self.configuration_id = ""
         self.session_name = ""
         super(UnifiedShellContext, self).__init__()
 

@@ -75,33 +75,35 @@ def test_setup_logger(caplog):
     assert drunc_root_logger.getEffectiveLevel() == logging.CRITICAL
     assert get_logger("tester4").getEffectiveLevel() == logging.CRITICAL
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        log_path = temp_dir + "/test.log"
-        logger = get_logger("tester5", log_file_path=log_path)
-        logger.debug("invisible")
-        logger.info("invisible")
-        logger.warning("invisible")
-        logger.error("invisible")
-        logger.critical("VISIBLE")
-        good_record = 0
-        bad_record = 0
+    temp_file = tempfile.TemporaryFile()
+    log_path = temp_file.name
+    print(f"log_path: {log_path}")
+    logger = get_logger("tester5", log_file_path=log_path)
+    logger.debug("invisible")
+    logger.info("invisible")
+    logger.warning("invisible")
+    logger.error("invisible")
+    logger.critical("VISIBLE")
+    good_record = 0
+    bad_record = 0
+    temp_file.close()
 
-        for record in caplog.records:
-            if (
-                "VISIBLE" in record.getMessage()
-                and record.levelno == logging.CRITICAL
-                and "tester5" in record.name
-            ):
-                good_record += 1
-            else:
-                bad_record += 1
+    for record in caplog.records:
+        if (
+            "VISIBLE" in record.getMessage()
+            and record.levelno == logging.CRITICAL
+            and "tester5" in record.name
+        ):
+            good_record += 1
+        else:
+            bad_record += 1
 
-        assert good_record == 1
-        assert bad_record == 0
+    assert good_record == 1
+    assert bad_record == 0
 
-        with open(log_path, "r") as f:
-            assert "VISIBLE" in f.read()
-            assert "invisible" not in f.read()
+    with open(log_path, "r") as f:
+        assert "VISIBLE" in f.read()
+        assert "invisible" not in f.read()
 
 
 def test_get_new_port():
