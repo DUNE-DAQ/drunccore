@@ -4,7 +4,6 @@ import os
 import signal
 import tempfile
 
-import conffwk
 from daqconf.consolidate import consolidate_db
 from druncschema.process_manager_pb2 import (
     BootRequest,
@@ -179,6 +178,8 @@ To debug it, close drunc and run the following command:
 
 """)
                 return
+
+        import conffwk  # isort: skip
 
         db = conffwk.Configuration(f"oksconflibs:{oks_conf}")
         session_dal = db.get_dal(class_name="Session", uid=session_name)
