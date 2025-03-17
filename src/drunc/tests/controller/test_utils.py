@@ -1,5 +1,7 @@
 import pytest
+
 from drunc.controller.exceptions import DruncCommandException
+
 
 def test_get_segment_lookup_timeout(load_test_config):
     from drunc.utils.configuration import parse_conf_url
@@ -39,12 +41,13 @@ def test_get_segment_lookup_timeout(load_test_config):
 
 
 def test_address_command():
-    from drunc.controller.utils import address_command
     from druncschema.controller_pb2 import AddressedCommand
     from druncschema.generic_pb2 import PlainText
     from google.protobuf import any_pb2
 
-    class MockNode():
+    from drunc.controller.utils import address_command
+
+    class MockNode:
         def __init__(self, name):
             self.name = name
             self.children_nodes = []
@@ -53,14 +56,32 @@ def test_address_command():
     obj.children_nodes = [MockNode(name="n0"), MockNode(name="n1")]
 
     obj.children_nodes[0].children_nodes = [MockNode(name="n00"), MockNode(name="n01")]
-    obj.children_nodes[0].children_nodes[0].children_nodes = [MockNode(name="n000"), MockNode(name="n001")]
-    obj.children_nodes[0].children_nodes[0].children_nodes[0].children_nodes = [MockNode(name="n0000"), MockNode(name="n0001")]
-    obj.children_nodes[0].children_nodes[0].children_nodes[1].children_nodes = [MockNode(name="n0010"), MockNode(name="n0011")]
-    obj.children_nodes[0].children_nodes[1].children_nodes = [MockNode(name="n010"), MockNode(name="n011")]
+    obj.children_nodes[0].children_nodes[0].children_nodes = [
+        MockNode(name="n000"),
+        MockNode(name="n001"),
+    ]
+    obj.children_nodes[0].children_nodes[0].children_nodes[0].children_nodes = [
+        MockNode(name="n0000"),
+        MockNode(name="n0001"),
+    ]
+    obj.children_nodes[0].children_nodes[0].children_nodes[1].children_nodes = [
+        MockNode(name="n0010"),
+        MockNode(name="n0011"),
+    ]
+    obj.children_nodes[0].children_nodes[1].children_nodes = [
+        MockNode(name="n010"),
+        MockNode(name="n011"),
+    ]
 
     obj.children_nodes[1].children_nodes = [MockNode(name="n10"), MockNode(name="n11")]
-    obj.children_nodes[1].children_nodes[0].children_nodes = [MockNode(name="n100"), MockNode(name="n101")]
-    obj.children_nodes[1].children_nodes[1].children_nodes = [MockNode(name="n110"), MockNode(name="n111")]
+    obj.children_nodes[1].children_nodes[0].children_nodes = [
+        MockNode(name="n100"),
+        MockNode(name="n101"),
+    ]
+    obj.children_nodes[1].children_nodes[1].children_nodes = [
+        MockNode(name="n110"),
+        MockNode(name="n111"),
+    ]
 
     command_data = any_pb2.Any()
     command_data.Pack(PlainText(text="some_command_data"))
@@ -76,14 +97,14 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         ),
         "n1": AddressedCommand(
             command=command_data,
             target="n1",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
-        )
+            execute_on_all_subsequent_children_in_path=True,
+        ),
     }
 
     ret = address_command(
@@ -91,21 +112,21 @@ def test_address_command():
         ret["n0"].command,
         ret["n0"].target,
         execute_along_path=False,
-        execute_on_all_subsequent_children_in_path=True
+        execute_on_all_subsequent_children_in_path=True,
     )
     assert ret == {
         "n00": AddressedCommand(
             command=command_data,
             target="n00",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         ),
         "n01": AddressedCommand(
             command=command_data,
             target="n01",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
-        )
+            execute_on_all_subsequent_children_in_path=True,
+        ),
     }
 
     # Testing that execute_on_all_subsequent_children_in_path works, with root specified
@@ -115,7 +136,7 @@ def test_address_command():
             command=command_data,
             target="n1",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         )
     }
     ret = address_command(
@@ -123,23 +144,24 @@ def test_address_command():
         ret["n1"].command,
         ret["n1"].target,
         execute_along_path=ret["n1"].execute_along_path,
-        execute_on_all_subsequent_children_in_path=ret["n1"].execute_on_all_subsequent_children_in_path
+        execute_on_all_subsequent_children_in_path=ret[
+            "n1"
+        ].execute_on_all_subsequent_children_in_path,
     )
     assert ret == {
         "n10": AddressedCommand(
             command=command_data,
             target="n10",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         ),
         "n11": AddressedCommand(
             command=command_data,
             target="n11",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
-        )
+            execute_on_all_subsequent_children_in_path=True,
+        ),
     }
-
 
     # Testing that one specific node can be addressed
     # ... with root
@@ -149,7 +171,7 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         )
     }
     ret = address_command(obj, command_data, "root/n0/n00", False, False)
@@ -158,7 +180,7 @@ def test_address_command():
             command=command_data,
             target="n0/n00",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         )
     }
     ret = address_command(obj, command_data, "root/n0/n00/n000", False, False)
@@ -167,7 +189,7 @@ def test_address_command():
             command=command_data,
             target="n0/n00/n000",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         )
     }
 
@@ -178,7 +200,7 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         )
     }
     ret = address_command(obj, command_data, "n0/n00", False, False)
@@ -187,7 +209,7 @@ def test_address_command():
             command=command_data,
             target="n0/n00",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         )
     }
     ret = address_command(obj, command_data, "n0/n00/n000", False, False)
@@ -196,7 +218,7 @@ def test_address_command():
             command=command_data,
             target="n0/n00/n000",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         )
     }
 
@@ -208,14 +230,14 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
             command=command_data,
             target="n1",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
-        )
+            execute_on_all_subsequent_children_in_path=False,
+        ),
     }
     ret = address_command(obj, command_data, "root/n./n.0", False, False)
     assert ret == {
@@ -223,14 +245,14 @@ def test_address_command():
             command=command_data,
             target="n0/n.0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
             command=command_data,
             target="n1/n.0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
-        )
+            execute_on_all_subsequent_children_in_path=False,
+        ),
     }
 
     # ... without root
@@ -240,14 +262,14 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
             command=command_data,
             target="n1",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
-        )
+            execute_on_all_subsequent_children_in_path=False,
+        ),
     }
     ret = address_command(obj, command_data, "n./n.0", False, False)
     assert ret == {
@@ -255,14 +277,14 @@ def test_address_command():
             command=command_data,
             target="n0/n.0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
+            execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
             command=command_data,
             target="n1/n.0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=False
-        )
+            execute_on_all_subsequent_children_in_path=False,
+        ),
     }
 
     # Checking that target can be prefixed with a slash
@@ -272,14 +294,14 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         ),
         "n1": AddressedCommand(
             command=command_data,
             target="n1",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
-        )
+            execute_on_all_subsequent_children_in_path=True,
+        ),
     }
 
     ret = address_command(obj, command_data, "/root/n0", False, True)
@@ -288,7 +310,7 @@ def test_address_command():
             command=command_data,
             target="n0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         )
     }
     ret = address_command(obj, command_data, "/root/n0/n.0", False, True)
@@ -297,10 +319,13 @@ def test_address_command():
             command=command_data,
             target="n0/n.0",
             execute_along_path=False,
-            execute_on_all_subsequent_children_in_path=True
+            execute_on_all_subsequent_children_in_path=True,
         )
     }
 
-    pytest.raises(DruncCommandException, address_command, obj, command_data, "/n0", False, True)
-    pytest.raises(DruncCommandException, address_command, obj, command_data, "N0", False, True)
-
+    pytest.raises(
+        DruncCommandException, address_command, obj, command_data, "/n0", False, True
+    )
+    pytest.raises(
+        DruncCommandException, address_command, obj, command_data, "N0", False, True
+    )

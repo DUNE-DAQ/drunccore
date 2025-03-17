@@ -1,10 +1,11 @@
+import re
+
 import grpc
 from google.protobuf import any_pb2
 from grpc_status import rpc_status
-import re
 
-from drunc.controller.stateful_node import StatefulNode
 from drunc.controller.exceptions import DruncCommandException
+from drunc.controller.stateful_node import StatefulNode
 from drunc.utils.grpc_utils import rethrow_if_unreachable_server, unpack_any
 from drunc.utils.utils import get_logger
 
@@ -12,6 +13,7 @@ from druncschema.controller_pb2 import Status  # isort: skip
 from druncschema.generic_pb2 import PlainText, Stacktrace  # isort: skip
 from druncschema.request_response_pb2 import Request  # isort: skip
 from druncschema.controller_pb2 import AddressedCommand  # isort: skip
+
 
 def get_status_message(stateful: StatefulNode):
     state_string = stateful.get_node_operational_state()
@@ -109,8 +111,9 @@ def get_segment_lookup_timeout(segment_conf, base_timeout=60):
     return base_timeout * recursion_count
 
 
-def address_command(obj, command, target, execute_along_path, execute_on_all_subsequent_children_in_path):
-
+def address_command(
+    obj, command, target, execute_along_path, execute_on_all_subsequent_children_in_path
+):
     ret = {}
     children_names = [c.name for c in obj.children_nodes]
 
@@ -126,10 +129,9 @@ def address_command(obj, command, target, execute_along_path, execute_on_all_sub
                     command=command,
                     target=child,
                     execute_along_path=execute_along_path,
-                    execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path
+                    execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
                 )
         return ret
-
 
     target_path = target_.split("/")
     if start_with_slash and target_path[0] != obj.name:
@@ -145,7 +147,7 @@ def address_command(obj, command, target, execute_along_path, execute_on_all_sub
                     command=command,
                     target=child,
                     execute_along_path=execute_along_path,
-                    execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path
+                    execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
                 )
         return ret
 
@@ -155,14 +157,16 @@ def address_command(obj, command, target, execute_along_path, execute_on_all_sub
         if re.match(target_name, child):
             new_target_path = child
             if len(target_path) > 1:
-                new_target_path =  "/".join([new_target_path] + target_path[1:])
+                new_target_path = "/".join([new_target_path] + target_path[1:])
             ret[child] = AddressedCommand(
                 command=command,
                 target=new_target_path,
                 execute_along_path=execute_along_path,
-                execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path
+                execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
             )
 
     if ret == {}:
-        raise DruncCommandException(f"Target '{target}' not found in children of '{obj.name}'")
+        raise DruncCommandException(
+            f"Target '{target}' not found in children of '{obj.name}'"
+        )
     return ret
