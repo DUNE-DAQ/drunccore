@@ -184,7 +184,7 @@ To debug it, close drunc and run the following command:
 
         import conffwk  # isort: skip
 
-        db = conffwk.Configuration(f"oksconflibs:{conf_file}")
+        db = conffwk.Configuration(conf_file)
         session_dal = db.get_dal(class_name="Session", uid=conf_id)
 
         async for br in self._convert_oks_to_boot_request(
