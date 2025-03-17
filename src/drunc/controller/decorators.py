@@ -39,7 +39,7 @@ def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
                 return Response(
                     name=obj.name,
                     token=request.token,
-                    data=PlainText(text=str(e)),
+                    data=pack_to_any(PlainText(text=str(e))),
                     flag=ResponseFlag.NOT_EXECUTED_BAD_REQUEST_FORMAT,
                     children=[],
                 )
@@ -56,7 +56,7 @@ def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
                 return Response(
                     name=obj.name,
                     token=request.token,
-                    data=PlainText(text=str(e)),
+                    data=pack_to_any(PlainText(text=str(e))),
                     flag=ResponseFlag.FAILED,
                     children=[],
                 )
@@ -68,7 +68,7 @@ def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
                     return Response(
                         name=obj.name,
                         token=request.token,
-                        data=PlainText(text=str(e)),
+                        data=pack_to_any(PlainText(text=str(e))),
                         flag=ResponseFlag.NOT_EXECUTED_BAD_REQUEST_FORMAT,
                         children=[],
                     )

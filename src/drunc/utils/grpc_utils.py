@@ -59,7 +59,7 @@ def unpack_request_data_to(data_type=None, pass_token=False):
                     return Response(
                         name=obj.__class__.__name__,
                         token=request.token,
-                        data=PlainText(text=str(e)),
+                        data=pack_to_any(PlainText(text=str(e))),
                         flag=ResponseFlag.NOT_EXECUTED_BAD_REQUEST_FORMAT,
                         children=[],
                     )
@@ -96,7 +96,7 @@ def async_unpack_request_data_to(data_type=None, pass_token=False):
                     yield Response(
                         name=obj.__class__.__name__,
                         token=request.token,
-                        data=PlainText(text=str(e)),
+                        data=pack_to_any(PlainText(text=str(e))),
                         flag=ResponseFlag.NOT_EXECUTED_BAD_REQUEST_FORMAT,
                         children=[],
                     )
