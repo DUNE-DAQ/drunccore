@@ -3,7 +3,6 @@ import requests
 from drunc.fsm.actions.utils import get_dotdrunc_json
 from drunc.fsm.core import FSMAction
 from drunc.fsm.exceptions import CannotSendElisaMessage, DotDruncJsonIncorrectFormat
-from drunc.utils.configuration import find_configuration
 from drunc.utils.utils import get_logger
 
 
@@ -82,8 +81,7 @@ class ElisaLogbook(FSMAction):
         self.run_type = _input_data.get(
             "production_vs_test", "TEST"
         )  # This class won't exist in a test run, so we're adding this temporarily so that we can actually run the function
-        run_configuration = find_configuration(_context.configuration.initial_data)
-        text += f"Configuration: {run_configuration}"
+        text += f"Configuration: {_context.configuration.initial_data}"
 
         if elisa_post != "" and self.run_type.lower() != "prod":
             self.log.warning(

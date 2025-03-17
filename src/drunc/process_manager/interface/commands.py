@@ -37,20 +37,21 @@ from drunc.utils.utils import get_logger, log_levels, run_coroutine
     default=True,
     help="Override logs, if --no-override-logs filenames have the timestamp of the run.",
 )
-@click.argument("boot-configuration", type=str, callback=validate_conf_string)
+@click.argument("configuration-file", type=str, callback=validate_conf_string)
 @click.argument("session-name", type=str)
+@click.argument("configuration-id", type=str)
 @click.pass_obj
 @run_coroutine
 async def boot(
     obj: ProcessManagerContext,
     user: str,
     session_name: str,
-    boot_configuration: str,
+    configuration_file: str,
+    configuration_id: str,
     log_level: str,
     override_logs: bool,
 ) -> None:
     log = get_logger("process_manager.shell")
-
     processes = await obj.get_driver("process_manager").ps(ProcessQuery(user=user))
 
     if len(processes.data.values) > 0:
@@ -60,11 +61,12 @@ async def boot(
         )
 
     log.debug(
-        f"Booting session {session_name} with boot configuration {boot_configuration}, requested by user {user}"
+        f"Booting session {session_name} with boot configuration file {configuration_file} and id {configuration_id}, requested by user {user}"
     )
     try:
         results = obj.get_driver("process_manager").boot(
-            conf=boot_configuration,
+            conf_file=configuration_file,
+            conf_id=configuration_id,
             user=user,
             session_name=session_name,
             log_level=log_level,
@@ -78,6 +80,9 @@ async def boot(
             )
     except InterruptedCommand:
         return
+    except Exception as e:
+        log.exception(e)
+        raise e
 
     controller_address = obj.get_driver("process_manager").controller_address
     if controller_address:

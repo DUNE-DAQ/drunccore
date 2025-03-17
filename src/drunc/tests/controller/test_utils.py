@@ -5,7 +5,7 @@ def test_get_segment_lookup_timeout(load_test_config):
     from drunc.utils.configuration import parse_conf_url
 
     conf_path, conf_type = parse_conf_url(
-        "oksconflibs://many_recursive_segments.data.xml"
+        "oksconflibs:many_recursive_segments.data.xml"
     )
     from drunc.controller.utils import get_segment_lookup_timeout
 
@@ -14,7 +14,7 @@ def test_get_segment_lookup_timeout(load_test_config):
     except ImportError:
         pytest.skip("conffwk not installed")
 
-    db = conffwk.Configuration(f"oksconflibs:{conf_path}")
+    db = conffwk.Configuration(conf_path)
 
     segment_0 = db.get_dal(class_name="Segment", uid="segment-0")
     assert get_segment_lookup_timeout(segment_0, base_timeout=60) == 60 * 5
