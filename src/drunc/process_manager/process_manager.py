@@ -93,27 +93,8 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             data=self.configuration.data.authoriser, type=ConfTypes.PyObject
         )
         
-        self.opmon_publisher = None
-        opmon_sleep_time = 5.0
-
-        if self.configuration.data.opmon_uri:
-            opmon_path = self.configuration.data.opmon_uri['path']
-            opmon_type = self.configuration.data.opmon_uri['type']
-            opmon_sleep_time = self.configuration.data.opmon_uri['sleep_time']
-
-            self.log.info(f'OpMon path {opmon_path} and type {opmon_type} is enabled')
-
-            if '/' in opmon_path:
-                opmon_bootstrap, opmon_topic = opmon_path.split('/', 1)
-            else:
-                opmon_bootstrap = opmon_path
-                opmon_topic = 'opmon_stream'
-
-            if opmon_type == 'stream':
-                self.opmon_publisher = OpMonPublisher(
-                    default_topic=opmon_topic,
-                    bootstrap=opmon_bootstrap
-                )
+        self.opmon_publisher = self.configuration.data.opmon_publisher
+        opmon_sleep_time = self.configuration.data.opmon_sleep_time
         self.authoriser = DummyAuthoriser(dach, SystemType.PROCESS_MANAGER)
 
         self.process_store = {}  # dict[str, sh.RunningCommand]
@@ -174,7 +155,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         ]
         
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
-
+        
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(names = [".*"]),opmon_sleep_time), daemon=True)
         self.thread.start()

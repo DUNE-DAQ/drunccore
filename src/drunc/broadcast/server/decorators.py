@@ -1,7 +1,9 @@
 import traceback
+import time
 
 from druncschema.generic_pb2 import Stacktrace
 from druncschema.request_response_pb2 import Response, ResponseFlag
+# from druncschema.opmon_pb2 import CMD_time
 
 from drunc.exceptions import DruncException
 from drunc.utils.grpc_utils import pack_to_any
@@ -16,6 +18,8 @@ def broadcasted(cmd):
     )  # this nifty decorator of decorator (!) is nicely preserving the cmd.__name__ (i.e. signature)
     def wrap(obj, request, context):
         log = get_logger("broadcasted_decorator")
+
+        cmd_start_time = time.time()
         # hummmm I feel like creating a level myself, but...
         # https://docs.python.org/3/howto/logging.html#custom-levels
         # lets not
@@ -61,8 +65,20 @@ def broadcasted(cmd):
 
         msg = f"User '{request.token.user_name}' successfully executed '{cmd.__name__}'"
 
+        cmd_end_time = time.time()
+
         obj.broadcast(message=msg, btype=BroadcastType.COMMAND_EXECUTION_SUCCESS)
         log.debug(msg)
+
+        # if hasattr(obj, "opmon_publisher") and obj.opmon_publisher is not None:
+        #     obj.opmon_publisher.publish(
+        #         session=obj.session,
+        #         application=obj.name,
+        #         message=CMD_time(
+        #             cmd_start_time=cmd_start_time,
+        #             cmd_end_time=cmd_end_time
+        #         )
+        #     )
 
         log.debug("Exiting")
         return ret
