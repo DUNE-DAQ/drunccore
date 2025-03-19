@@ -26,7 +26,6 @@ from druncschema.request_response_pb2 import (
     ResponseFlag,
 )
 from google.rpc import code_pb2
-from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import (

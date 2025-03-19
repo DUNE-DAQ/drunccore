@@ -8,14 +8,13 @@ from confmodel import (
     daq_application_construct_commandline_parameters,
     rc_application_construct_commandline_parameters,
 )
+from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
+from drunc.exceptions import DruncCommandException
 from drunc.process_manager.exceptions import UnknownProcessManagerType
 from drunc.utils.configuration import ConfHandler
 from drunc.utils.utils import get_logger
-
-from drunc.exceptions import DruncCommandException
-from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 
 class ProcessManagerTypes(Enum):
