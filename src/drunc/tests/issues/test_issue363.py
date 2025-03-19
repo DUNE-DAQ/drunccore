@@ -7,7 +7,7 @@ from drunc.utils.utils import setup_root_logger
 
 def test_issue363(load_test_config):
     setup_root_logger("INFO")
-    conf_path, conf_type = parse_conf_url("oksconflibs://nestedConfig.data.xml")
+    conf_path, conf_type = parse_conf_url("oksconflibs:nestedConfig.data.xml")
     controller_id = "nested-segment-controller"
     controller_configuration = ControllerConfHandler(
         type=conf_type,

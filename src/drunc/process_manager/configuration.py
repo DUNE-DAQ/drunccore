@@ -3,11 +3,7 @@ from enum import Enum
 from importlib.resources import path
 from urllib.parse import urlparse
 
-from appmodel import smart_daq_application_construct_commandline_parameters
-from confmodel import (
-    daq_application_construct_commandline_parameters,
-    rc_application_construct_commandline_parameters,
-)
+
 from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
@@ -100,49 +96,36 @@ class ProcessManagerConfHandler(ConfHandler):
 
         return new_data
 
-    def create_id(self, obj, segment=None, **kwargs):
-        if hasattr(obj, "oksTypes"):
-            if "RCApplication" in obj.oksTypes():
-                if segment.segments:
-                    self.root_id += 1
-                    self.controller_id = 0
-                    self.process_id = 0
-                    self.process_id_infra = 0
-                    id = f"{self.root_id}.{self.controller_id}.{self.process_id}"
-                    return id
-                elif not segment.segments:
-                    self.controller_id += 1
-                    self.process_id = 0
-                    id = f"{self.root_id}.{self.controller_id}.{self.process_id}"
-                    return id
-            elif "SmartDaqApplication" in obj.oksTypes():
-                self.process_id += 1
-                id = f"{self.root_id}.{self.controller_id}.{self.process_id}"
-                return id
-            else:
-                self.process_id_infra += 1
-                id = f"{self.root_id}.0.{self.process_id_infra}"
-                return id
 
+def get_commandline_parameters(db, config_filename, session_id, session_name, obj):
+    runs_on = obj.runs_on.runs_on.id
+    control_service_port = -1
+    control_service_protocol = ""
+    for svc in obj.exposes_service:
+        if svc.id.endswith("_control"):
+            control_service_port = svc.port
+            control_service_protocol = svc.protocol
+            break
 
-def get_cla(db, session_uid, obj):
-    if hasattr(obj, "oksTypes"):
-        if "RCApplication" in obj.oksTypes():
-            return rc_application_construct_commandline_parameters(
-                db, session_uid, obj.id
-            )
+    commandline_parameters = [
+        "-s",
+        session_name,
+        "-k",
+        session_id,
+        "-n",
+        obj.id,
+        "-c",
+        f"{control_service_protocol}://{runs_on}:{control_service_port}",
+        "-d",
+        config_filename,
+    ]
+    if "RCApplication" in obj.oksTypes():
+        commandline_parameters += [
+            "-l",
+            db.get_dal("Session", session_id).controller_log_level,
+        ]
 
-        elif "SmartDaqApplication" in obj.oksTypes():
-            return smart_daq_application_construct_commandline_parameters(
-                db, session_uid, obj.id
-            )
-
-        elif "DaqApplication" in obj.oksTypes():
-            return daq_application_construct_commandline_parameters(
-                db, session_uid, obj.id
-            )
-
-    return obj.commandline_parameters
+    return commandline_parameters
 
 
 def get_process_manager_configuration(process_manager_conf_filename: str) -> str:

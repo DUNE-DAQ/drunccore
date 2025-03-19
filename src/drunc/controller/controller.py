@@ -21,7 +21,6 @@ from druncschema.request_response_pb2 import (
     ResponseFlag,
 )
 from druncschema.token_pb2 import Token
-from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import authentified_and_authorised
@@ -96,6 +95,8 @@ class Controller(ControllerServicer):
     children_nodes = []  # type: List[ChildNode]
 
     def __init__(self, configuration, name: str, session: str, token: Token):
+        from kafkaopmon.OpMonPublisher import OpMonPublisher
+
         super().__init__()
 
         self.name = name
@@ -175,6 +176,7 @@ class Controller(ControllerServicer):
         self.children_nodes = self.configuration.get_children(
             init_token=self.actor.get_token(),
             connectivity_service=self.connectivity_service,
+            session_name=self.session,
         )
 
         children_statuses = self.propagate_to_list(

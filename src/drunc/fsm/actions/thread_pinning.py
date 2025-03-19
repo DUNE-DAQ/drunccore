@@ -9,7 +9,6 @@ from drunc.fsm.core import FSMAction
 from drunc.fsm.exceptions import ThreadPinningFailed
 from drunc.process_manager.oks_parser import collect_apps
 from drunc.process_manager.utils import get_rte_script
-from drunc.utils.configuration import find_configuration
 from drunc.utils.utils import get_logger
 
 
@@ -20,7 +19,7 @@ class ThreadPinning(FSMAction):
         self.conf_dict = {p.name: p.value for p in configuration.parameters}
 
     def pin_thread(self, thread_pinning_file, configuration, session):
-        db = conffwk.Configuration(f"oksconflibs:{configuration}")
+        db = conffwk.Configuration(configuration)
         session_dal = db.get_dal(class_name="Session", uid=session)
 
         apps = collect_apps(db, session_dal, session_dal.segment, environ)
@@ -77,27 +76,28 @@ class ThreadPinning(FSMAction):
             raise ThreadPinningFailed(failed_hosts_error_str)
 
     def post_conf(self, _input_data, _context, **kwargs):
-        run_configuration = find_configuration(_context.configuration.initial_data)
         if "post_conf" in self.conf_dict:
             self.pin_thread(
-                self.conf_dict["post_conf"], run_configuration, session=_context.session
+                self.conf_dict["post_conf"],
+                _context.configuration.initial_data,
+                session=_context.session,
             )
         return _input_data
 
     def post_start(self, _input_data, _context, **kwargs):
-        run_configuration = find_configuration(_context.configuration.initial_data)
         if "post_start" in self.conf_dict:
             self.pin_thread(
                 self.conf_dict["post_start"],
-                run_configuration,
+                _context.configuration.initial_data,
                 session=_context.session,
             )
         return _input_data
 
     def pre_conf(self, _input_data, _context, **kwargs):
-        run_configuration = find_configuration(_context.configuration.initial_data)
         if "pre_conf" in self.conf_dict:
             self.pin_thread(
-                self.conf_dict["pre_conf"], run_configuration, session=_context.session
+                self.conf_dict["pre_conf"],
+                _context.configuration.initial_data,
+                session=_context.session,
             )
         return _input_data

@@ -1,7 +1,7 @@
-import abc
-from typing import Optional
+from __future__ import annotations
 
-from kafkaopmon.OpMonPublisher import OpMonPublisher
+import abc
+from typing import TYPE_CHECKING, Optional
 
 from drunc.exceptions import DruncCommandException
 from drunc.fsm.core import FSM
@@ -9,7 +9,8 @@ from drunc.fsm.exceptions import InvalidTransition
 from drunc.fsm.utils import decode_fsm_arguments
 from drunc.utils.utils import get_logger
 
-from druncschema.opmon_pb2 import Status  # isort: skip
+if TYPE_CHECKING:
+    from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 
 class Observed:
@@ -89,7 +90,7 @@ class StatefulNode(abc.ABC):
     def __init__(
         self,
         fsm_configuration,
-        publisher: Optional[OpMonPublisher] = None,
+        publisher: Optional["OpMonPublisher"] = None,
         session: str = "",
         name: str = "",
     ):
@@ -109,6 +110,8 @@ class StatefulNode(abc.ABC):
         self.__in_error = ErrorState(stateful_node=self, initial_value=False)
 
     def publish_state(self):
+        from druncschema.opmon_pb2 import Status
+
         if self.publisher is not None:
             self.publisher.publish(
                 session=self.session,

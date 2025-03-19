@@ -4,8 +4,6 @@ import os
 import signal
 import tempfile
 
-import conffwk
-from daqconf.consolidate import consolidate_db
 from druncschema.process_manager_pb2 import (
     BootRequest,
     LogLine,
@@ -24,13 +22,7 @@ from drunc.connectivity_service.client import ConnectivityServiceClient
 from drunc.connectivity_service.exceptions import ApplicationLookupUnsuccessful
 from drunc.controller.utils import get_segment_lookup_timeout
 from drunc.exceptions import DruncSetupException, DruncShellException
-from drunc.process_manager.oks_parser import (
-    collect_apps,
-    collect_infra_apps,
-    collect_variables,
-)
 from drunc.process_manager.utils import get_log_path, get_rte_script
-from drunc.utils.configuration import find_configuration
 from drunc.utils.shell_utils import GRPCDriver
 from drunc.utils.utils import (
     get_control_type_and_uri_from_connectivity_service,
@@ -61,19 +53,24 @@ class ProcessManagerDriver(GRPCDriver):
         session_name: str,
         override_logs: bool,
     ) -> BootRequest:
+        from drunc.process_manager.oks_parser import collect_apps, collect_infra_apps
+
         env = {
             "DUNEDAQ_SESSION": session_name,
         }
 
         apps = collect_apps(
-            db,
-            session_dal,
-            session_dal.segment,
-            env,
+            session_name=session_name,
+            config_filename=oks_conf,
+            db=db,
+            session_obj=session_dal,
+            segment_obj=session_dal.segment,
+            env=env,
             tree_prefix=[
                 0,
             ],
         )
+
         # Next line gets the max of all the first number in the tree id, and adds 1 to it.
         next_tree_id = max([int(app["tree_id"].split(".")[0]) for app in apps]) + 1
         infra_apps = collect_infra_apps(session_dal, env, tree_prefix=[next_tree_id])
@@ -154,37 +151,42 @@ class ProcessManagerDriver(GRPCDriver):
 
     async def boot(
         self,
-        conf: str,
+        conf_file: str,
+        conf_id: str,
         user: str,
         session_name: str,
         log_level: str,
         override_logs: bool = True,
         **kwargs,
     ) -> ProcessInstance:
+        from daqconf.consolidate import consolidate_db
+
         self.log.info(f"Booting session [green]{session_name}[/green]")
-        oks_conf = find_configuration(conf)
 
         with tempfile.NamedTemporaryFile(suffix=".data.xml", delete=True) as f:
             f.flush()
             f.seek(0)
             fname = f.name
             try:
-                consolidate_db(oks_conf, f"{fname}")
+                conf_file_no_scheme = conf_file.replace("oksconflibs:", "")
+                consolidate_db(conf_file_no_scheme, f"{fname}")
             except Exception as e:
                 self.log.critical(f"""\nInvalid configuration passed (cannot consolidate your configuration)
 {e}
 To debug it, close drunc and run the following command:
 
-[yellow]oks_dump --files-only {oks_conf}[/]
+[yellow]oks_dump --files-only {conf_file_no_scheme}[/]
 
 """)
                 return
 
-        db = conffwk.Configuration(f"oksconflibs:{oks_conf}")
-        session_dal = db.get_dal(class_name="Session", uid=session_name)
+        import conffwk  # isort: skip
+
+        db = conffwk.Configuration(conf_file)
+        session_dal = db.get_dal(class_name="Session", uid=conf_id)
 
         async for br in self._convert_oks_to_boot_request(
-            oks_conf=conf,
+            oks_conf=conf_file,
             user=user,
             session_dal=session_dal,
             session_name=session_name,
@@ -201,6 +203,8 @@ To debug it, close drunc and run the following command:
         top_controller_name = session_dal.segment.controller.id
 
         def get_controller_address(session_dal, session_name):
+            from drunc.process_manager.oks_parser import collect_variables
+
             env = {}
             collect_variables(session_dal.environment, env)
             if session_dal.connectivity_service:
