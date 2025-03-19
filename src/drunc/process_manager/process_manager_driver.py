@@ -4,7 +4,6 @@ import os
 import signal
 import tempfile
 
-from daqconf.consolidate import consolidate_db
 from druncschema.process_manager_pb2 import (
     BootRequest,
     LogLine,
@@ -23,11 +22,6 @@ from drunc.connectivity_service.client import ConnectivityServiceClient
 from drunc.connectivity_service.exceptions import ApplicationLookupUnsuccessful
 from drunc.controller.utils import get_segment_lookup_timeout
 from drunc.exceptions import DruncSetupException, DruncShellException
-from drunc.process_manager.oks_parser import (
-    collect_apps,
-    collect_infra_apps,
-    collect_variables,
-)
 from drunc.process_manager.utils import get_log_path, get_rte_script
 from drunc.utils.shell_utils import GRPCDriver
 from drunc.utils.utils import (
@@ -59,6 +53,8 @@ class ProcessManagerDriver(GRPCDriver):
         session_name: str,
         override_logs: bool,
     ) -> BootRequest:
+        from drunc.process_manager.oks_parser import collect_apps, collect_infra_apps
+
         env = {
             "DUNEDAQ_SESSION": session_name,
         }
@@ -163,6 +159,8 @@ class ProcessManagerDriver(GRPCDriver):
         override_logs: bool = True,
         **kwargs,
     ) -> ProcessInstance:
+        from daqconf.consolidate import consolidate_db
+
         self.log.info(f"Booting session [green]{session_name}[/green]")
 
         with tempfile.NamedTemporaryFile(suffix=".data.xml", delete=True) as f:
@@ -205,6 +203,8 @@ To debug it, close drunc and run the following command:
         top_controller_name = session_dal.segment.controller.id
 
         def get_controller_address(session_dal, session_name):
+            from drunc.process_manager.oks_parser import collect_variables
+
             env = {}
             collect_variables(session_dal.environment, env)
             if session_dal.connectivity_service:
