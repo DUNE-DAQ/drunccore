@@ -45,12 +45,23 @@ class ProcessManagerConfHandler(ConfHandler):
             new_data.broadcaster = None
         new_data.authoriser = None
         new_data.environment = data.get("environment", {})
+
+        match data["type"].lower():
+            case "ssh":
+                new_data.type = ProcessManagerTypes.SSH
+                new_data.kill_timeout = data.get("kill_timeout", 0.5)
+            case "k8s":
+                new_data.type = ProcessManagerTypes.K8s
+                new_data.image = data.get("image", "ghcr.io/dune-daq/alma9:latest")
+            case _:
+                raise UnknownProcessManagerType(data["type"])
+
         new_data.opmon_publisher = None
         opmon_uri = data.get('opmon_uri', None)
-
+        
         if not opmon_uri:
-            self.log.error("Missing 'opmon_uri' in configuration. Process Manager will not start.")
-            raise DruncCommandException("Missing 'opmon_uri' in configuration.")
+            self.log.info("Missing 'opmon_uri' in configuration.")
+            return new_data
 
         opmon_path = opmon_uri.get("path","")
         opmon_type = opmon_uri.get("type","")
@@ -82,16 +93,6 @@ class ProcessManagerConfHandler(ConfHandler):
         else:
             self.log.error(f"Unsupported OpMon type: {opmon_type}")
             raise DruncCommandException(f"Unsupported OpMon type: {opmon_type}")
-
-        match data["type"].lower():
-            case "ssh":
-                new_data.type = ProcessManagerTypes.SSH
-                new_data.kill_timeout = data.get("kill_timeout", 0.5)
-            case "k8s":
-                new_data.type = ProcessManagerTypes.K8s
-                new_data.image = data.get("image", "ghcr.io/dune-daq/alma9:latest")
-            case _:
-                raise UnknownProcessManagerType(data["type"])
 
         return new_data
 
