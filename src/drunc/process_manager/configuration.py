@@ -3,7 +3,6 @@ from enum import Enum
 from importlib.resources import path
 from urllib.parse import urlparse
 
-
 from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
