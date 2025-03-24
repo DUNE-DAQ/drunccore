@@ -156,14 +156,14 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
         
         self.stop_event = threading.Event()
-        self.thread = threading.Thread(target=self.run_ps, args=(ProcessQuery(names = [".*"]),opmon_sleep_time), daemon=True)
+        self.thread = threading.Thread(target=self.publish, args=(ProcessQuery(names = [".*"]),opmon_sleep_time), daemon=True)
         self.thread.start()
 
     def __del__(self):
         self.stop_event.set()
         self.thread.join()
 
-    def run_ps(self, q:ProcessQuery, sleep_time:float = 5):
+    def publish(self, q:ProcessQuery, sleep_time:float = 5):
         while not self.stop_event.is_set():
             results = self._ps_impl(q)
             
