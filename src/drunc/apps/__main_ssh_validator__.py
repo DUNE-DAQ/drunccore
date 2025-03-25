@@ -7,7 +7,11 @@ from sh import Command
 
 from drunc.process_manager.oks_parser import collect_apps
 from drunc.process_manager.ssh_process_manager import on_parent_exit
-from drunc.utils.utils import create_logger_handler, get_logger, log_levels, setup_root_logger
+from drunc.utils.utils import (
+    create_logger_handler,
+    get_logger,
+    log_levels,
+)
 
 
 def validate_ssh_connection(configuration: str, session_name: str, log_level: str):
@@ -37,7 +41,6 @@ def validate_ssh_connection(configuration: str, session_name: str, log_level: st
     ssh = Command("/usr/bin/ssh")
 
     for host in hosts:
-
         log.info(f"Trying to SSH onto host [green]{host}[/green]")
 
         user_host = f"{getpass.getuser()}@{host}"
@@ -50,7 +53,7 @@ def validate_ssh_connection(configuration: str, session_name: str, log_level: st
         log.debug(f"SSH command: /usr/bin/ssh {' '.join(ssh_args)}")
 
         try:
-            process = ssh(
+            ssh(
                 *ssh_args,
                 _bg=False,
                 _bg_exc=False,
