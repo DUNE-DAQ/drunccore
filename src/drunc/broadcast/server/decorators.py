@@ -1,11 +1,9 @@
-import traceback
 import time
+import traceback
 
 from druncschema.generic_pb2 import Stacktrace
-from druncschema.request_response_pb2 import Response, ResponseFlag
 from druncschema.opmon_pb2 import Command_time
-
-from kafkaopmon.OpMonPublisher import OpMonPublisher
+from druncschema.request_response_pb2 import Response, ResponseFlag
 
 from drunc.exceptions import DruncException
 from drunc.utils.grpc_utils import pack_to_any
