@@ -15,8 +15,8 @@ import pytest
 from drunc.exceptions import DruncSetupException
 from drunc.utils.utils import (
     ControlType,
-    create_logger_handler,
     IncorrectAddress,
+    create_logger_handler,
     expand_path,
     get_control_type_and_uri_from_cli,
     get_logger,
