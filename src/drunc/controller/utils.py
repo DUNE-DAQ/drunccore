@@ -111,8 +111,26 @@ def get_segment_lookup_timeout(segment_conf, base_timeout=60):
     return base_timeout * recursion_count
 
 
+# #/root-controller/df-controller execute_along_path=False
+
+# {
+#     "df-01": {
+#         AddressedCommand(
+#             target="/df-controller/df-01",
+#             execute_along_path=True,
+#             execute_on_all_subsequent_children_in_path=True,
+#         )
+#     }
+# }
+
+
 def address_command(
-    obj, command, target, execute_along_path, execute_on_all_subsequent_children_in_path
+    obj,
+    command,
+    data,
+    target,
+    execute_along_path,
+    execute_on_all_subsequent_children_in_path,
 ):
     ret = {}
     children_names = [c.name for c in obj.children_nodes]
@@ -126,7 +144,8 @@ def address_command(
         if execute_on_all_subsequent_children_in_path:
             for child in children_names:
                 ret[child] = AddressedCommand(
-                    command=command,
+                    command_name=command,
+                    data=data,
                     target=child,
                     execute_along_path=execute_along_path,
                     execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
@@ -144,7 +163,8 @@ def address_command(
         if execute_on_all_subsequent_children_in_path:
             for child in children_names:
                 ret[child] = AddressedCommand(
-                    command=command,
+                    command_name=command,
+                    data=data,
                     target=child,
                     execute_along_path=execute_along_path,
                     execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
@@ -159,7 +179,8 @@ def address_command(
             if len(target_path) > 1:
                 new_target_path = "/".join([new_target_path] + target_path[1:])
             ret[child] = AddressedCommand(
-                command=command,
+                command_name=command,
+                data=data,
                 target=new_target_path,
                 execute_along_path=execute_along_path,
                 execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
