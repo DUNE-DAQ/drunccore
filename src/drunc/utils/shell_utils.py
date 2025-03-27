@@ -16,7 +16,7 @@ from drunc.exceptions import (
     DruncShellException,
 )
 from drunc.utils.grpc_utils import rethrow_if_unreachable_server, unpack_any
-from drunc.utils.utils import get_logger, print_traceback, setup_root_logger
+from drunc.utils.utils import get_logger
 
 
 class InterruptedCommand(DruncShellException):
@@ -255,11 +255,11 @@ class ShellContext:
         self._drivers: Mapping[str, GRPCDriver] = self.create_drivers(**driver_args)
 
     def __init__(self, *args, **kwargs):
-        setup_root_logger("NOTSET")
+        log = get_logger("utils.ShellContext")
         try:
             self.reset(*args, **kwargs)
         except Exception as e:
-            print_traceback(e)
+            log.exception(e)
             exit(1)
 
     @abc.abstractmethod
