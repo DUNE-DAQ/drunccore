@@ -35,6 +35,7 @@ class ChildNode(abc.ABC):
         self.log = get_logger(f"controller.{name}-child-node")
         self.name = name
         self.configuration = configuration
+        self.included = True
 
     @abc.abstractmethod
     def __str__(self):
