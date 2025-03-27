@@ -1,12 +1,13 @@
 from functools import wraps
 
-from druncschema.addressed_command_pb2 import AddressedCommand
+from druncschema.controller_pb2 import AddressedCommand
 from druncschema.generic_pb2 import PlainText
 from druncschema.request_response_pb2 import Response, ResponseFlag
 
 from drunc.controller.utils import address_command
 from drunc.exceptions import DruncCommandException
 from drunc.utils.grpc_utils import UnpackingError, pack_to_any, unpack_any
+from drunc.utils.utils import get_logger
 
 
 def in_control(cmd):
@@ -29,13 +30,26 @@ def in_control(cmd):
     return wrap
 
 
-def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
+def unpack_addressed_command_to(data_type=None):
     def decor(cmd):
+        command_name = cmd.__name__
+        logger = get_logger(f"controller.upack_add'ed_cmd.{command_name}")
+
         @wraps(cmd)
         def wrap(obj, request):
             try:
-                command = unpack_any(request.data, AddressedCommand)
+                if request.HasField("data"):
+                    command = unpack_any(request.data, AddressedCommand)
+                else:
+                    command = AddressedCommand(
+                        command_name=command_name,
+                        data=None,
+                        target=None,
+                        execute_along_path=True,
+                        execute_on_all_subsequent_children_in_path=True,
+                    )
             except UnpackingError as e:
+                logger.error(f"UnpackingError: {e}")
                 return Response(
                     name=obj.name,
                     token=request.token,
@@ -47,12 +61,14 @@ def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
             try:
                 addressed_commands = address_command(
                     obj=obj,
-                    command=command.data,
+                    command=command_name,
+                    data=command.data,
                     target=command.target,
                     execute_along_path=command.execute_along_path,
                     execute_on_all_subsequent_children_in_path=command.execute_on_all_subsequent_children_in_path,
                 )
             except DruncCommandException as e:
+                logger.exception(e)
                 return Response(
                     name=obj.name,
                     token=request.token,
@@ -60,7 +76,9 @@ def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
                     flag=ResponseFlag.FAILED,
                     children=[],
                 )
+
             payload = None
+
             if data_type is not None:
                 try:
                     payload = unpack_any(command.data, data_type)
@@ -73,14 +91,18 @@ def unpack_addressed_command_to(cmd, data_type=None, pass_token=False):
                         children=[],
                     )
 
-            kwargs = {}
-            if pass_token:
-                kwargs = {"token": request.token}
-
+            kwargs = {
+                "addressed_commands": addressed_commands,
+                "execute_on_self": command.execute_along_path,
+                "token": request.token,
+            }
             if payload is not None:
-                ret = cmd(obj, payload, addressed_commands, **kwargs)
-            else:
-                ret = cmd(obj, addressed_commands, **kwargs)
+                kwargs["payload"] = payload
+
+            ret = cmd(
+                obj,
+                **kwargs,
+            )
 
             return ret
 
