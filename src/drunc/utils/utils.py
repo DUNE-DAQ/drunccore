@@ -170,14 +170,6 @@ def regex_match(regex, string):
     return re.match(regex, string) is not None
 
 
-def print_traceback(e):  # RETURNTOME - rename to print_console_traceback
-    log = get_logger(logger_name="traceback")
-    drunc_logger = logging.getLogger("drunc")
-    if drunc_logger.handlers == []:
-        create_logger_handler(rich_handler=True)
-    log.exception(e)
-
-
 def get_new_port():
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("", 0))
