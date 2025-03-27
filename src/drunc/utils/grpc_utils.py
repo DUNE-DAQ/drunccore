@@ -18,7 +18,7 @@ class UnpackingError(DruncCommandException):
         self.format = format
 
         super().__init__(
-            f"Cannot unpack {data} to {format.DESCRIPTOR.name}",
+            f"Cannot unpack '{data}' to '{format.DESCRIPTOR.name}'",
             code_pb2.INVALID_ARGUMENT,
         )
 
