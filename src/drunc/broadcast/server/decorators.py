@@ -2,7 +2,7 @@ import time
 import traceback
 
 from druncschema.generic_pb2 import Stacktrace
-from druncschema.opmon_pb2 import Command_time
+from druncschema.opmon.opmon_FSM_pb2 import CommandTime
 from druncschema.request_response_pb2 import Response, ResponseFlag
 
 from drunc.exceptions import DruncException
@@ -73,11 +73,11 @@ def broadcasted(cmd):
             obj.opmon_publisher.publish(
                 session=obj.session,
                 application=obj.name,
-                message=Command_time(
+                message=CommandTime(
                     cmd_start_time = cmd_start_time,
-                    cmd_end_time = cmd_end_time,
-                    cmd_exe_time = cmd_exe_time
-                )
+                    cmd_execution_time = cmd_exe_time
+                ),
+                custom_origin = {'Command: ',cmd.__name__}
             )
 
         log.debug("Exiting")
