@@ -463,11 +463,8 @@ class RESTAPIChildNode(ClientSideChild):
                 f"Got error from '{command_name}' to '{self.name}': {str(e)}"
             )
             self.state.to_error()
-            from drunc.utils.utils import (
-                print_traceback,  # for good measure, since I'm not sure the stack will be printed in propagate_to_child in the controller
-            )
 
-            print_traceback(e)
+            self.log.exception(e)
             raise e
 
         return response
