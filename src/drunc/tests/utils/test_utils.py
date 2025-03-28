@@ -80,7 +80,7 @@ def test_setup_logger(caplog):
     temp_file = tempfile.NamedTemporaryFile()
     log_path = temp_file.name
     logger = get_logger("tester5")
-    create_logger_handler(log_file_path = log_path)
+    create_logger_handler(log_file_path=log_path)
     logger.debug("invisible")
     logger.info("invisible")
     logger.warning("invisible")
@@ -101,7 +101,7 @@ def test_setup_logger(caplog):
     assert good_record == 1
     assert bad_record == 0
 
-    with open(log_path, "r") as f:
+    with open(log_path) as f:
         temp_file_data = f.read()
         assert "VISIBLE" in temp_file_data
         assert "invisible" not in temp_file_data
