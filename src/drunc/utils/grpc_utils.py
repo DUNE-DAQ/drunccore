@@ -178,7 +178,7 @@ def async_pack_response(cmd, with_children_responses=False):
 class ServerUnreachable(DruncException):
     def __init__(self, message):
         self.message = message
-        super(ServerUnreachable, self).__init__(message, code_pb2.UNAVAILABLE)
+        super(ServerUnreachable, self).__init__(message)
 
 
 def server_is_reachable(grpc_error):
