@@ -49,4 +49,4 @@ readme = {file = ["docs/README.md"]}
 where = ["src"]
 
 [tool.setuptools.package-data]
-drunc = ["*.xml", "*.json"]
+"drunc.data.process_manager" = ["*.json"]
