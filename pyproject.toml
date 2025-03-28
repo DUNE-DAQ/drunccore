@@ -45,5 +45,8 @@ drunc-ssh-validator = "drunc.apps.__main_ssh_validator__:main"
 version = {attr = "drunc.__version__"}
 readme = {file = ["docs/README.md"]}
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.setuptools.package-data]
 drunc = ["*.xml", "*.json"]
