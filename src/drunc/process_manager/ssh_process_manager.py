@@ -346,6 +346,7 @@ class SSHProcessManager(ProcessManager):
             return_code=return_code,
             uuid=pu,
         )
+
         return pi
 
     def _ps_impl(self, query: ProcessQuery) -> ProcessInstanceList:

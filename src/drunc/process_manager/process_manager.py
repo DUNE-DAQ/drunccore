@@ -1,8 +1,11 @@
 import abc
 import re
+import threading
+import time
 
 from druncschema.authoriser_pb2 import ActionType, SystemType
 from druncschema.broadcast_pb2 import BroadcastType
+from druncschema.opmon_process_manager_pb2 import ProcessStatus
 from druncschema.process_manager_pb2 import (
     BootRequest,
     LogLine,
@@ -88,7 +91,9 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         dach = DummyAuthoriserConfHandler(
             data=self.configuration.data.authoriser, type=ConfTypes.PyObject
         )
-
+        
+        self.opmon_publisher = self.configuration.data.opmon_publisher
+        opmon_sleep_time = getattr(self.configuration.data, 'opmon_sleep_time', 5)
         self.authoriser = DummyAuthoriser(dach, SystemType.PROCESS_MANAGER)
 
         self.process_store = {}  # dict[str, sh.RunningCommand]
@@ -147,9 +152,34 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
                 return_type="process_manager_pb2.ProcessInstance",
             ),
         ]
-
+        
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
+        
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self.publish, args=(ProcessQuery(names = [".*"]),opmon_sleep_time), daemon=True)
+        self.thread.start()
 
+    def __del__(self):
+        self.stop_event.set()
+        self.thread.join()
+
+    def publish(self, q:ProcessQuery, sleep_time:float = 5):
+        while not self.stop_event.is_set():
+            results = self._ps_impl(q)
+            
+            n_running = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.RUNNING)
+            n_dead = sum(1 for process in results.values if process.status_code == ProcessInstance.StatusCode.DEAD)
+            n_session = len({process.process_description.metadata.session for process in results.values})
+
+            if self.opmon_publisher is not None:
+                self.opmon_publisher.publish(
+                    session = self.session,
+                    application = self.name,
+                    message = ProcessStatus(n_running = n_running,n_dead = n_dead, n_session = n_session)    
+                    )
+            time.sleep(sleep_time)
+    
+    
     """
     A couple of simple pass-through functions to the broadcasting service
     """
@@ -212,6 +242,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         )
         try:
             resp = self._boot_impl(br)
+
             return Response(
                 name=self.name,
                 token=None,
@@ -239,7 +270,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
     )  # 2nd step
     @unpack_request_data_to(None)  # 3rd step
     def terminate(self) -> Response:
-        self.log.debug(f"{self.name} terminating")
+        self.log.debug(f"{self.name} terminating") 
         try:
             resp = self._terminate_impl()
             return Response(
