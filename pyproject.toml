@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drunc"
+requires-python = ">=3.10,<3.11"
+dynamic = ["version", "readme"]
+dependencies = [
+    "click",
+    "click-shell",
+    "grpcio",
+    "googleapis-common-protos",
+    "grpcio-status",
+    "grpcio-tools",
+    "gunicorn",
+    "kafka-python",
+    "nest-asyncio",
+    "rich",
+    "requests",
+    "Flask",
+    "Flask-RESTful",
+    "sh",
+    "kubernetes",
+    "pytz",
+    "psutil",
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "pre-commit", "pytest",]
+
+[tool.setuptools.dynamic]
+version = {attr = "drunc.__version__"}
+readme = {file = ["docs/README.md"]}
