@@ -18,7 +18,7 @@ def broadcasted(cmd):
     def wrap(obj, request, context):
         log = get_logger("broadcasted_decorator")
 
-        #cmd_start_time = time.time()
+        # cmd_start_time = time.time()
         # hummmm I feel like creating a level myself, but...
         # https://docs.python.org/3/howto/logging.html#custom-levels
         # lets not
@@ -64,7 +64,7 @@ def broadcasted(cmd):
 
         msg = f"User '{request.token.user_name}' successfully executed '{cmd.__name__}'"
 
-        #cmd_end_time = time.time()
+        # cmd_end_time = time.time()
 
         obj.broadcast(message=msg, btype=BroadcastType.COMMAND_EXECUTION_SUCCESS)
         log.debug(msg)
