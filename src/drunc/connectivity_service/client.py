@@ -36,7 +36,6 @@ class ConnectivityServiceClient:
                 self.log.debug(
                     f"Retracting '{uid}' on the connectivity service, attempt {i + 1}"
                 )
-
                 r = http_post(
                     self.address + "/retract",
                     data=data,
@@ -45,7 +44,6 @@ class ConnectivityServiceClient:
                     timeout=0.5,
                     ignore_errors=True,
                 )
-
                 if r.status_code == 404:
                     self.log.warning(
                         f"Connection '{uid}' not found on the connectivity service"
@@ -97,7 +95,6 @@ class ConnectivityServiceClient:
                     break
 
                 r.raise_for_status()
-                print(r.text)
                 break
 
             except (HTTPError, ConnectionError) as e:
