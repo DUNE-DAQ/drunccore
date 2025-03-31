@@ -58,8 +58,6 @@ def match_children(statuses: list, descriptions: list) -> dict:
 
 
 def print_status_table(obj, status: DecodedResponse, description: DecodedResponse):
-    from rich.table import Table
-
     t = Table(
         title=f"[dark_green]{description.data.session}[/dark_green] status"
         if description.data
@@ -76,21 +74,26 @@ def print_status_table(obj, status: DecodedResponse, description: DecodedRespons
     def add_status_to_table(table, status, description, prefix):
         valid_description = check_message_type(description, "Description")
         valid_status = check_message_type(status, "Status")
-
+        NA = "[red]NA[/]"
         table.add_row(
             prefix + status.name,
-            description.data.info if valid_description else "unavailable",
-            status.data.state if valid_status else "unavailable",
-            status.data.sub_state if valid_status else "unavailable",
+            description.data.info if valid_description else NA,
+            status.data.state if valid_status else NA,
+            status.data.sub_state if valid_status else NA,
             format_bool(status.data.in_error, false_is_good=True)
             if valid_status
-            else "unavailable",
-            format_bool(status.data.included) if valid_status else "unavailable",
-            description.data.endpoint if valid_description else "unavailable",
+            else NA,
+            format_bool(status.data.included) if valid_status else NA,
+            description.data.endpoint if valid_description else NA,
         )
-        for child in match_children(status.children, description.children).values():
+        children = match_children(status.children, description.children)
+        children_list = sorted(list(children.keys()))
+        for child in children_list:
             add_status_to_table(
-                t, child["status"], child["description"], prefix=prefix + "  "
+                t,
+                children[child]["status"],
+                children[child]["description"],
+                prefix=prefix + "  ",
             )
 
     add_status_to_table(t, status, description, prefix="")
