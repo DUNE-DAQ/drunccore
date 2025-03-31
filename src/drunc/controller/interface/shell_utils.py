@@ -379,14 +379,43 @@ def run_one_fsm_command(
     log.info(
         f"Running transition '{transition_name}' on controller '{controller_name}'"
     )
-    fsm_description = obj.get_driver("controller").describe_fsm().data
-    command_desc = search_fsm_command(transition_name, fsm_description.commands)
-
-    if command_desc is None:
-        log.error(
-            f'Command "{transition_name}" does not exist, or is not accessible right now'
+    fsm_description = (
+        obj.get_driver("controller")
+        .describe_fsm(
+            target=target,
+            execute_along_path=execute_along_path,
+            execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
         )
-        return
+        .data
+    )
+
+    execute_on_root_controller = False
+    if target == "":
+        execute_on_root_controller = True
+    elif target == controller_name:
+        execute_on_root_controller = True
+    elif target == "/" + controller_name:
+        execute_on_root_controller = True
+    elif target.startswith(controller_name + "/") and execute_along_path:
+        execute_on_root_controller = True
+    elif target.startswith("/" + controller_name + "/") and execute_along_path:
+        execute_on_root_controller = True
+
+    if execute_on_root_controller:
+        command_desc = search_fsm_command(transition_name, fsm_description.commands)
+
+        if command_desc is None:
+            log.error(
+                f'Command "{transition_name}" does not exist, or is not accessible right now'
+            )
+            return
+    else:
+
+        class DummyCommand:
+            pass
+
+        command_desc = DummyCommand()
+        command_desc.arguments = []
 
     try:
         formated_args = validate_and_format_fsm_arguments(
