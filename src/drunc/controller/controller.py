@@ -886,7 +886,7 @@ class Controller(ControllerServicer):
             return Response(
                 name=self.name,
                 token=token,
-                data=pack_to_any(status),
+                data=None,
                 flag=ResponseFlag.EXECUTED_SUCCESSFULLY,
                 children=self.propagate_addressed_command(
                     "recompute_status",
