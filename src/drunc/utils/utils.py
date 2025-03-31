@@ -72,6 +72,8 @@ class LoggingFormatter(logging.Formatter):
         record.filename = file_lineno.ljust(component_width)[:component_width]
         component_width = 45
         name_colon = f"{record.name}:"
+        if name_colon.startswith("drunc."):
+            name_colon = name_colon.replace("drunc.", "")
         record.name = name_colon.ljust(component_width)[:component_width]
         component_width = 10
         level_name = record.levelname
