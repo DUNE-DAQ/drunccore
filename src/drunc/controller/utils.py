@@ -132,6 +132,8 @@ def address_command(
     execute_along_path,
     execute_on_all_subsequent_children_in_path,
 ):
+    log = get_logger("controller.address_command")
+
     ret = {}
     children_names = [c.name for c in obj.children_nodes]
 
@@ -187,7 +189,5 @@ def address_command(
             )
 
     if ret == {}:
-        raise DruncCommandException(
-            f"Target '{target}' not found in children of '{obj.name}'"
-        )
+        log.info(f"Target '{target}' not found in children of '{obj.name}'")
     return ret
