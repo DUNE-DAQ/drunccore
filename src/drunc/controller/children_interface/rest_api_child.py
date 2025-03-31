@@ -4,6 +4,7 @@ import queue
 import socket
 import threading
 import time
+from json import JSONDecodeError
 from typing import NoReturn
 
 import requests
@@ -474,11 +475,15 @@ class RESTAPIChildNode(ClientSideChild):
         exit_state = self.fsm.get_destination_state(entry_state, transition)
         self.state.executing_command_mark()
         self.log.info(f"Sending '{data.command_name}' to '{self.name}'")
-
+        try:
+            the_module_data = json.loads(data.data if data.data else "{}")
+        except JSONDecodeError as e:
+            self.log.error(f"Error parsing data: {e}")
+            raise e
         try:
             self.commander.send_command(
                 cmd_id=data.command_name,
-                module_data={"modules": [{"data": json.loads(data.data), "match": ""}]},
+                module_data={"modules": [{"data": the_module_data, "match": ""}]},
                 entry_state=entry_state.upper(),
                 exit_state=exit_state.upper(),
             )
