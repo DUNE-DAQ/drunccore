@@ -22,6 +22,7 @@ from druncschema.request_response_pb2 import (
     ResponseFlag,
 )
 from druncschema.token_pb2 import Token
+from google.protobuf.any_pb2 import Any
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import authentified_and_authorised
@@ -397,8 +398,8 @@ class Controller(ControllerServicer):
         addressed_commands = {
             cn: AddressedCommand(
                 command_name=command_name,
+                command_data=command_data,
                 target=cn,
-                data=command_data,
                 execute_along_path=True,
                 execute_on_all_subsequent_children_in_path=True,
             )
@@ -452,7 +453,10 @@ class Controller(ControllerServicer):
                 with response_lock:
                     response_children.append(response)
 
-                if response.flag == ResponseFlag.EXECUTED_SUCCESSFULLY:
+                if response.flag in [
+                    ResponseFlag.EXECUTED_SUCCESSFULLY,
+                    ResponseFlag.NOT_EXECUTED_NOT_IMPLEMENTED,
+                ]:
                     self.log.info(
                         f"Propagated {command_name} to children ({child.name}) successfully"
                     )
@@ -645,7 +649,7 @@ class Controller(ControllerServicer):
     @unpack_addressed_command_to(FSMCommand)  # 4th step
     def execute_fsm_command(
         self,
-        fsm_command: FSMCommand,
+        payload: FSMCommand,
         addressed_commands: dict[str, AddressedCommand],
         execute_on_self: bool,
         token: Token,
@@ -653,18 +657,18 @@ class Controller(ControllerServicer):
         if execute_on_self:
             if self.stateful_node.node_is_in_error():
                 return self.construct_error_node_response(
-                    fsm_command.command_name,
+                    payload.command_name,
                     token,
                     cause=FSMResponseFlag.FSM_NOT_EXECUTED_IN_ERROR,
                 )
 
             if not self.stateful_node.node_is_included():
                 self.log.error(
-                    f"Node is not included, not executing command {fsm_command.command_name}."
+                    f"Node is not included, not executing command {payload.command_name}."
                 )
                 fsm_result = FSMCommandResponse(
                     flag=FSMResponseFlag.FSM_NOT_EXECUTED_EXCLUDED,
-                    command_name=fsm_command.command_name,
+                    command_name=payload.command_name,
                 )
 
                 return Response(
@@ -675,7 +679,7 @@ class Controller(ControllerServicer):
                     children=[],
                 )
 
-            transition = self.stateful_node.get_fsm_transition(fsm_command.command_name)
+            transition = self.stateful_node.get_fsm_transition(payload.command_name)
 
             self.log.debug(f'The transition requested is "{str(transition)}"')
 
@@ -686,7 +690,7 @@ class Controller(ControllerServicer):
 
                 fsm_result = FSMCommandResponse(
                     flag=FSMResponseFlag.FSM_INVALID_TRANSITION,
-                    command_name=fsm_command.command_name,
+                    command_name=payload.command_name,
                 )
 
                 return Response(
@@ -697,29 +701,36 @@ class Controller(ControllerServicer):
                     children=[],
                 )
 
-            self.log.debug(f"FSM command data: {fsm_command}")
+            self.log.debug(f"FSM command data: {payload}")
 
-            fsm_args = self.stateful_node.decode_fsm_arguments(fsm_command)
+            fsm_args = self.stateful_node.decode_fsm_arguments(payload)
 
             fsm_data = self.stateful_node.prepare_transition(
                 transition=transition,
                 transition_args=fsm_args,
-                transition_data=fsm_command.data,
+                transition_data=payload.data,
                 ctx=self,
             )
 
             self.stateful_node.propagate_transition_mark(transition)
 
-            children_fsm_command = FSMCommand()
-            children_fsm_command.CopyFrom(fsm_command)
-            children_fsm_command.data = fsm_data
-            children_fsm_command.ClearField(
-                "children_nodes"
-            )  # we strip the children node, since when we feed them to the children they are meaningless
+            children_fsm_commands = {}
+            for target, command in addressed_commands.items():
+                child_fsm_command = FSMCommand()
+                child_fsm_command.CopyFrom(unpack_any(command.command_data, FSMCommand))
+                child_fsm_command.data = fsm_data
+
+                children_fsm_commands[target] = AddressedCommand(
+                    command_name=command.command_name,
+                    command_data=pack_to_any(child_fsm_command),
+                    target=target,
+                    execute_along_path=command.execute_along_path,
+                    execute_on_all_subsequent_children_in_path=command.execute_on_all_subsequent_children_in_path,
+                )
 
             response_children = self.propagate_addressed_command(
                 "execute_fsm_command",
-                addressed_commands=addressed_commands,
+                addressed_commands=children_fsm_commands,
                 token=token,
             )
 
@@ -763,7 +774,7 @@ class Controller(ControllerServicer):
             )  # self has executed successfully, even if children have not
             fsm_result = FSMCommandResponse(
                 flag=self_response_fsm_flag,
-                command_name=fsm_command.command_name,
+                command_name=payload.command_name,
             )
 
             return Response(

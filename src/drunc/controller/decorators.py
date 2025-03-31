@@ -43,7 +43,7 @@ def unpack_addressed_command_to(data_type=None):
                 else:
                     command = AddressedCommand(
                         command_name=command_name,
-                        data=None,
+                        command_data=None,
                         target=None,
                         execute_along_path=True,
                         execute_on_all_subsequent_children_in_path=True,
@@ -61,8 +61,8 @@ def unpack_addressed_command_to(data_type=None):
             try:
                 addressed_commands = address_command(
                     obj=obj,
-                    command=command_name,
-                    data=command.data,
+                    command_name=command_name,
+                    command_data=command.command_data,
                     target=command.target,
                     execute_along_path=command.execute_along_path,
                     execute_on_all_subsequent_children_in_path=command.execute_on_all_subsequent_children_in_path,
@@ -81,7 +81,7 @@ def unpack_addressed_command_to(data_type=None):
 
             if data_type is not None:
                 try:
-                    payload = unpack_any(command.data, data_type)
+                    payload = unpack_any(command.command_data, data_type)
                 except UnpackingError as e:
                     return Response(
                         name=obj.name,

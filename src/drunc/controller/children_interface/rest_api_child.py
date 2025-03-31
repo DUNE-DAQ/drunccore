@@ -8,7 +8,7 @@ from typing import NoReturn
 
 import requests
 import socks
-from druncschema.controller_pb2 import FSMCommandResponse, FSMResponseFlag
+from druncschema.controller_pb2 import FSMCommand, FSMCommandResponse, FSMResponseFlag
 from druncschema.generic_pb2 import PlainText
 from druncschema.request_response_pb2 import Response, ResponseFlag
 from druncschema.token_pb2 import Token
@@ -386,7 +386,7 @@ class RESTAPIChildNode(ClientSideChild):
     def get_endpoint(self):
         return f"rest://{self.app_host}:{self.app_port}"
 
-    def propagate_expert_command(self, data, token: Token) -> Response:
+    def propagate_expert_command(self, data: PlainText, token: Token) -> Response:
         data_dict = json.loads(data.text)
         example = json.dumps(
             {
@@ -468,7 +468,7 @@ class RESTAPIChildNode(ClientSideChild):
 
         return response
 
-    def propagate_fsm_command(self, data, token: Token) -> Response:
+    def propagate_fsm_command(self, data: FSMCommand, token: Token) -> Response:
         entry_state = self.state.get_operational_state()
         transition = self.fsm.get_transition(data.command_name)
         exit_state = self.fsm.get_destination_state(entry_state, transition)
