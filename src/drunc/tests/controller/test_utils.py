@@ -87,20 +87,22 @@ def test_address_command():
     command_data.Pack(PlainText(text="some_command_data"))
 
     # Testing that root cannot be addressed
-    assert address_command(obj, command_data, "", False, False) == {}
-    assert address_command(obj, command_data, "root", False, False) == {}
+    assert address_command(obj, "some-command", command_data, "", False, False) == {}
+    assert address_command(obj, "some-command", command_data, "root", False, False) == {}
 
     # Testing that execute_on_all_subsequent_children_in_path works
-    ret = address_command(obj, command_data, "", False, True)
+    ret = address_command(obj, "some-command", command_data, "", False, True)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         ),
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
@@ -108,21 +110,24 @@ def test_address_command():
     }
 
     ret = address_command(
-        obj.children_nodes[0],
-        ret["n0"].command,
-        ret["n0"].target,
+        obj=obj.children_nodes[0],
+        command_name="some-command",
+        command_data=command_data,
+        target="n0",
         execute_along_path=False,
         execute_on_all_subsequent_children_in_path=True,
     )
     assert ret == {
         "n00": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n00",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         ),
         "n01": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n01",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
@@ -130,33 +135,35 @@ def test_address_command():
     }
 
     # Testing that execute_on_all_subsequent_children_in_path works, with root specified
-    ret = address_command(obj, command_data, "root/n1", False, True)
+    ret = address_command(obj, "some-command", command_data, "root/n1", False, True)
     assert ret == {
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         )
     }
     ret = address_command(
-        obj.children_nodes[1],
-        ret["n1"].command,
-        ret["n1"].target,
-        execute_along_path=ret["n1"].execute_along_path,
-        execute_on_all_subsequent_children_in_path=ret[
-            "n1"
-        ].execute_on_all_subsequent_children_in_path,
+        obj=obj.children_nodes[1],
+        command_name="some-command",
+        command_data=command_data,
+        target="n1",
+        execute_along_path=False,
+        execute_on_all_subsequent_children_in_path=True,
     )
     assert ret == {
         "n10": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n10",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         ),
         "n11": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n11",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
@@ -165,28 +172,31 @@ def test_address_command():
 
     # Testing that one specific node can be addressed
     # ... with root
-    ret = address_command(obj, command_data, "root/n0", False, False)
+    ret = address_command(obj, "some-command", command_data, "root/n0", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         )
     }
-    ret = address_command(obj, command_data, "root/n0/n00", False, False)
+    ret = address_command(obj, "some-command", command_data, "root/n0/n00", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n00",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         )
     }
-    ret = address_command(obj, command_data, "root/n0/n00/n000", False, False)
+    ret = address_command(obj, "some-command", command_data, "root/n0/n00/n000", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n00/n000",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
@@ -194,28 +204,31 @@ def test_address_command():
     }
 
     # ... without root
-    ret = address_command(obj, command_data, "n0", False, False)
+    ret = address_command(obj, "some-command", command_data, "n0", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         )
     }
-    ret = address_command(obj, command_data, "n0/n00", False, False)
+    ret = address_command(obj, "some-command", command_data, "n0/n00", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n00",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         )
     }
-    ret = address_command(obj, command_data, "n0/n00/n000", False, False)
+    ret = address_command(obj, "some-command", command_data, "n0/n00/n000", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n00/n000",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
@@ -224,31 +237,35 @@ def test_address_command():
 
     # Testing that regex matching works
     # ... with root
-    ret = address_command(obj, command_data, "root/n.", False, False)
+    ret = address_command(obj, "some-command", command_data, "root/n.", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         ),
     }
-    ret = address_command(obj, command_data, "root/n./n.0", False, False)
+    ret = address_command(obj, "some-command", command_data, "root/n./n.0", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n.0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1/n.0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
@@ -256,31 +273,35 @@ def test_address_command():
     }
 
     # ... without root
-    ret = address_command(obj, command_data, "n.", False, False)
+    ret = address_command(obj, "some-command", command_data, "n.", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         ),
     }
-    ret = address_command(obj, command_data, "n./n.0", False, False)
+    ret = address_command(obj, "some-command", command_data, "n./n.0", False, False)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n.0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
         ),
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1/n.0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=False,
@@ -288,35 +309,39 @@ def test_address_command():
     }
 
     # Checking that target can be prefixed with a slash
-    ret = address_command(obj, command_data, "/root", False, True)
+    ret = address_command(obj, "some-command", command_data, "/root", False, True)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         ),
         "n1": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n1",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         ),
     }
 
-    ret = address_command(obj, command_data, "/root/n0", False, True)
+    ret = address_command(obj, "some-command", command_data, "/root/n0", False, True)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
         )
     }
-    ret = address_command(obj, command_data, "/root/n0/n.0", False, True)
+    ret = address_command(obj, "some-command", command_data, "/root/n0/n.0", False, True)
     assert ret == {
         "n0": AddressedCommand(
-            command=command_data,
+            command_name="some-command",
+            command_data=command_data,
             target="n0/n.0",
             execute_along_path=False,
             execute_on_all_subsequent_children_in_path=True,
@@ -324,8 +349,8 @@ def test_address_command():
     }
 
     pytest.raises(
-        DruncCommandException, address_command, obj, command_data, "/n0", False, True
+        DruncCommandException, address_command, obj, "some-command", command_data, "/n0", False, True
     )
     pytest.raises(
-        DruncCommandException, address_command, obj, command_data, "N0", False, True
+        DruncCommandException, address_command, obj, "some-command", command_data, "N0", False, True
     )

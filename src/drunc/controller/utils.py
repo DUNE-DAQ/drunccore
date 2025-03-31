@@ -126,8 +126,8 @@ def get_segment_lookup_timeout(segment_conf, base_timeout=60):
 
 def address_command(
     obj,
-    command,
-    data,
+    command_name,
+    command_data,
     target,
     execute_along_path,
     execute_on_all_subsequent_children_in_path,
@@ -144,8 +144,8 @@ def address_command(
         if execute_on_all_subsequent_children_in_path:
             for child in children_names:
                 ret[child] = AddressedCommand(
-                    command_name=command,
-                    data=data,
+                    command_name=command_name,
+                    command_data=command_data,
                     target=child,
                     execute_along_path=execute_along_path,
                     execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
@@ -163,8 +163,8 @@ def address_command(
         if execute_on_all_subsequent_children_in_path:
             for child in children_names:
                 ret[child] = AddressedCommand(
-                    command_name=command,
-                    data=data,
+                    command_name=command_name,
+                    command_data=command_data,
                     target=child,
                     execute_along_path=execute_along_path,
                     execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
@@ -179,8 +179,8 @@ def address_command(
             if len(target_path) > 1:
                 new_target_path = "/".join([new_target_path] + target_path[1:])
             ret[child] = AddressedCommand(
-                command_name=command,
-                data=data,
+                command_name=command_name,
+                command_data=command_data,
                 target=new_target_path,
                 execute_along_path=execute_along_path,
                 execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
