@@ -92,13 +92,13 @@ def status(
     "--execute-along-path",
     type=bool,
     help="Execute the command along the path",
-    default=False,
+    default=True,
 )
 @click.option(
     "--execute-on-all-subsequent-children-in-path",
     type=bool,
     help="Execute the command on all subsequent children in the path",
-    default=False,
+    default=True,
 )
 @click.pass_obj
 def recompute_status(
@@ -112,7 +112,11 @@ def recompute_status(
         execute_along_path=execute_along_path,
         execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
     )
-    descriptions = obj.get_driver("controller").describe()
+    descriptions = obj.get_driver("controller").describe(
+        target=target,
+        execute_along_path=execute_along_path,
+        execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
+    )
     print_status_table(obj, statuses, descriptions)
 
 
