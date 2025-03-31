@@ -357,7 +357,15 @@ def validate_and_format_fsm_arguments(
     return out_dict
 
 
-def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
+def run_one_fsm_command(
+    controller_name,
+    transition_name,
+    obj,
+    target,
+    execute_along_path,
+    execute_on_all_subsequent_children_in_path,
+    **kwargs,
+):
     log = logging.getLogger("controller.shell_utils")
     log.info(
         f"Running transition '{transition_name}' on controller '{controller_name}'"
@@ -381,6 +389,9 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
         )
         result = obj.get_driver("controller").execute_fsm_command(
             arguments=data,
+            target=target,
+            execute_along_path=execute_along_path,
+            execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
         )
     except ArgumentException as ae:
         log.exception(
@@ -404,12 +415,14 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
         return "[dark_green]success[/]" if flag else "[red]failed[/]"
 
     def add_to_table(table, response, prefix=""):
+        executed_command = response.data is not None
+
         table.add_row(
             prefix + response.name,
             bool_to_success(response.flag, FSM=False),
             bool_to_success(response.data.flag, FSM=True)
-            if response.flag == FSMResponseFlag.FSM_EXECUTED_SUCCESSFULLY
-            else "[red]failed[/]",
+            if executed_command
+            else "[red]NA[/]",
         )
         for child_response in response.children:
             add_to_table(table, child_response, "  " + prefix)
@@ -425,6 +438,25 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
 def generate_fsm_command(ctx, transition: FSMCommandDescription, controller_name: str):
     cmd = partial(run_one_fsm_command, controller_name, transition.name)
     cmd = click.pass_obj(cmd)
+    cmd = click.option(
+        "--target",
+        type=str,
+        help="The target to address",
+        default="",
+    )(cmd)
+    cmd = click.option(
+        "--execute-along-path",
+        type=bool,
+        help="Execute the command along the path",
+        default=True,
+    )(cmd)
+    cmd = click.option(
+        "--execute-on-all-subsequent-children-in-path",
+        type=bool,
+        help="Execute the command on all subsequent children in the path",
+        default=True,
+    )(cmd)
+
     for argument in transition.arguments:
         atype = None
         if argument.type == Argument.Type.STRING:
