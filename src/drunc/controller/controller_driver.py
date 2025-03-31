@@ -104,22 +104,12 @@ class ControllerDriver(GRPCDriver):
         )
 
     @pack_empty_addressed_command
-    def include(
-        self, addressed_command: AddressedCommand, arguments
-    ) -> DecodedResponse:
-        new_command = AddressedCommand()
-        new_command.CopyFrom(addressed_command)
-        new_command.command_data.Pack(arguments)
-        return self.send_command("include", data=new_command, outformat=PlainText)
+    def include(self, addressed_command: AddressedCommand) -> DecodedResponse:
+        return self.send_command("include", data=addressed_command, outformat=PlainText)
 
     @pack_empty_addressed_command
-    def exclude(
-        self, addressed_command: AddressedCommand, arguments
-    ) -> DecodedResponse:
-        new_command = AddressedCommand()
-        new_command.CopyFrom(addressed_command)
-        new_command.command_data.Pack(arguments)
-        return self.send_command("exclude", data=new_command, outformat=PlainText)
+    def exclude(self, addressed_command: AddressedCommand) -> DecodedResponse:
+        return self.send_command("exclude", data=addressed_command, outformat=PlainText)
 
     @pack_empty_addressed_command
     def expert_command(
