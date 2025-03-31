@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from functools import partial
 
 import click
@@ -38,6 +39,9 @@ def generate_none_description() -> Description:
 
 
 def check_message_type(message, expected_type: str) -> None:
+    if message is None:
+        return False
+
     if message.data is None:
         return False
 
@@ -46,14 +50,19 @@ def check_message_type(message, expected_type: str) -> None:
     return True
 
 
-def match_children(statuses: list, descriptions: list) -> dict:
-    children = {}
+def match_children(statuses: list, descriptions: list) -> defaultdict:
+    children = defaultdict(dict)
     for status in statuses:
-        children[status.name] = {"status": status}
+        children[status.name].update({"status": status})
 
     for description in descriptions:
         children[description.name].update({"description": description})
 
+    for child in children.values():
+        if "status" not in child:
+            child["status"] = None
+        if "description" not in child:
+            child["description"] = None
     return children
 
 
@@ -76,7 +85,7 @@ def print_status_table(obj, status: DecodedResponse, description: DecodedRespons
         valid_status = check_message_type(status, "Status")
         NA = "[red]NA[/]"
         table.add_row(
-            prefix + status.name,
+            prefix + status.name if valid_status else NA,
             description.data.info if valid_description else NA,
             status.data.state if valid_status else NA,
             status.data.sub_state if valid_status else NA,
