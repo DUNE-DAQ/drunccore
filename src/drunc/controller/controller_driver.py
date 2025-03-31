@@ -29,7 +29,6 @@ class ControllerDriver(GRPCDriver):
             target: str = "",
             execute_along_path: bool = True,
             execute_on_all_subsequent_children_in_path: bool = True,
-            *args,
             **kwargs,
         ):
             command_name = cmd.__name__
