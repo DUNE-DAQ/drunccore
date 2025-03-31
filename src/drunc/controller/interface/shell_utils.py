@@ -79,16 +79,14 @@ def print_status_table(obj, status: DecodedResponse, description: DecodedRespons
 
         table.add_row(
             prefix + status.name,
-            description.data.info if valid_description else "[red]unavailable[/]",
-            status.data.state if valid_status else "[red]unavailable[/]",
-            status.data.sub_state if valid_status else "[red]unavailable[/]",
+            description.data.info if valid_description else "unavailable",
+            status.data.state if valid_status else "unavailable",
+            status.data.sub_state if valid_status else "unavailable",
             format_bool(status.data.in_error, false_is_good=True)
             if valid_status
-            else "[red]unavailable[/]",
-            format_bool(status.data.included)
-            if valid_status
-            else "[red]unavailable[/]",
-            description.data.endpoint if valid_description else "[red]unavailable[/]",
+            else "unavailable",
+            format_bool(status.data.included) if valid_status else "unavailable",
+            description.data.endpoint if valid_description else "unavailable",
         )
         for child in match_children(status.children, description.children).values():
             add_status_to_table(
