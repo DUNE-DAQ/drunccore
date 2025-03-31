@@ -22,7 +22,15 @@ class ThreadPinning(FSMAction):
         db = conffwk.Configuration(configuration)
         session_dal = db.get_dal(class_name="Session", uid=session)
 
-        apps = collect_apps(db, session_dal, session_dal.segment, environ)
+        apps = collect_apps(
+            config_filename=configuration,
+            session_name=session,
+            db=db,
+            session_obj=session_dal,
+            segment_obj=session_dal.segment,
+            env=environ,
+            tree_prefix=[],
+        )
 
         if session_dal.rte_script:
             rte = session_dal.rte_script
@@ -80,7 +88,7 @@ class ThreadPinning(FSMAction):
             self.pin_thread(
                 self.conf_dict["post_conf"],
                 _context.configuration.initial_data,
-                session=_context.session,
+                session=_context.configuration.oks_key.session,
             )
         return _input_data
 
@@ -89,7 +97,7 @@ class ThreadPinning(FSMAction):
             self.pin_thread(
                 self.conf_dict["post_start"],
                 _context.configuration.initial_data,
-                session=_context.session,
+                session=_context.configuration.oks_key.session,
             )
         return _input_data
 
@@ -98,6 +106,6 @@ class ThreadPinning(FSMAction):
             self.pin_thread(
                 self.conf_dict["pre_conf"],
                 _context.configuration.initial_data,
-                session=_context.session,
+                session=_context.configuration.oks_key.session,
             )
         return _input_data

@@ -44,6 +44,7 @@ from drunc.process_manager.interface.commands import (
 from drunc.process_manager.interface.process_manager import run_pm
 from drunc.unified_shell.commands import boot
 from drunc.utils.configuration import ConfTypes, OKSKey
+from drunc.utils.grpc_utils import ServerUnreachable
 from drunc.utils.utils import (
     create_logger_handler,
     get_logger,
@@ -193,12 +194,23 @@ def unified_shell(
         unified_shell_log.error(
             f"[red]Could not connect to the process manager at the address[/red] [green]{process_manager_address}[/]"
         )
+        unified_shell_log.error(f"Reason: {e}")
+
+        if type(e) == ServerUnreachable:
+            unified_shell_log.error(
+                "This can happen if you have the webproxy enabled at CERN"
+            )
+
         if internal_pm and not ctx.obj.pm_process.is_alive():
             unified_shell_log.error(
                 f"[red]The process_manager is dead[/red], exit code {ctx.obj.pm_process.exitcode}"
             )
-        unified_shell_log.exception(e)
-        sys.exit()
+
+        if ctx.obj.pm_process.is_alive():
+            ctx.obj.pm_process.terminate()
+            ctx.obj.pm_process.join()
+
+        sys.exit(1)
 
     if desc.HasField("broadcast"):
         unified_shell_log.debug("Broadcasting")

@@ -22,8 +22,6 @@ from druncschema.request_response_pb2 import (
     ResponseFlag,
 )
 from druncschema.token_pb2 import Token
-from google.protobuf.any_pb2 import Any
-from kafkaopmon.OpMonPublisher import OpMonPublisher
 
 from drunc.authoriser.configuration import DummyAuthoriserConfHandler
 from drunc.authoriser.decorators import authentified_and_authorised
@@ -97,6 +95,8 @@ class Controller(ControllerServicer):
     children_nodes = []  # type: List[ChildNode]
 
     def __init__(self, configuration, name: str, session: str, token: Token):
+        from kafkaopmon.OpMonPublisher import OpMonPublisher
+
         super().__init__()
 
         self.name = name
@@ -463,7 +463,7 @@ class Controller(ControllerServicer):
 
             except Exception as e:  # Catch all, we are in a thread and want to do something sensible when an exception is thrown
                 self.log.error(
-                    f"Something wrong happened while sending the command to {child.name}: Error raised: {str(e)}"
+                    f"Something wrong happened while sending the command to {child.name}: Error raised: {e!s}"
                 )
                 self.log.exception(e)
                 flag = (

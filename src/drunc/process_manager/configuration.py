@@ -3,7 +3,10 @@ from enum import Enum
 from importlib.resources import path
 from urllib.parse import urlparse
 
+from kafkaopmon.OpMonPublisher import OpMonPublisher
+
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
+from drunc.exceptions import DruncCommandException
 from drunc.process_manager.exceptions import UnknownProcessManagerType
 from drunc.utils.configuration import ConfHandler
 from drunc.utils.utils import get_logger
@@ -22,6 +25,8 @@ class ProcessManagerConfData:
         self.type = ProcessManagerTypes.Unknown
         self.command_address = ""
         self.environment = {}
+        self.opmon_uri = None
+        self.opmon_publisher = None
 
 
 class ProcessManagerConfHandler(ConfHandler):
@@ -40,6 +45,7 @@ class ProcessManagerConfHandler(ConfHandler):
             new_data.broadcaster = None
         new_data.authoriser = None
         new_data.environment = data.get("environment", {})
+
         match data["type"].lower():
             case "ssh":
                 new_data.type = ProcessManagerTypes.SSH
@@ -49,6 +55,49 @@ class ProcessManagerConfHandler(ConfHandler):
                 new_data.image = data.get("image", "ghcr.io/dune-daq/alma9:latest")
             case _:
                 raise UnknownProcessManagerType(data["type"])
+
+        new_data.opmon_publisher = None
+        opmon_uri = data.get("opmon_uri", None)
+
+        if not opmon_uri:
+            self.log.info("Missing 'opmon_uri' in configuration.")
+            return new_data
+
+        opmon_path = opmon_uri.get("path", "")
+        opmon_type = opmon_uri.get("type", "")
+        new_data.opmon_sleep_time = opmon_uri.get("sleep_time", 5.0)
+
+        if not opmon_path or not opmon_type:
+            self.log.error("Invalid 'opmon_uri' format: Missing required fields.")
+            raise DruncCommandException(
+                "Invalid 'opmon_uri' format: Missing required fields."
+            )
+
+        self.log.info(
+            f"OpMon path {opmon_path} and type {opmon_type} is enabled, sleep time: {new_data.opmon_sleep_time} s"
+        )
+
+        if "/" in opmon_path:
+            opmon_bootstrap, opmon_topic = opmon_path.split("/", 1)
+        else:
+            opmon_bootstrap = opmon_path
+            opmon_topic = "opmon_stream"
+
+        if opmon_type == "stream":
+            try:
+                new_data.opmon_publisher = OpMonPublisher(
+                    default_topic=opmon_topic, bootstrap=opmon_bootstrap
+                )
+                self.log.info(
+                    f"OpMonPublisher initialized: {opmon_bootstrap}/{opmon_topic}"
+                )
+
+            except Exception as e:
+                self.log.error(f"Failed to initialize OpMonPublisher: {e}")
+                raise DruncCommandException("Failed to initialize OpMonPublisher.")
+        else:
+            self.log.error(f"Unsupported OpMon type: {opmon_type}")
+            raise DruncCommandException(f"Unsupported OpMon type: {opmon_type}")
 
         return new_data
 

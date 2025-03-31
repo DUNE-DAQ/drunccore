@@ -16,6 +16,7 @@ from drunc.exceptions import DruncSetupException
 from drunc.utils.utils import (
     ControlType,
     IncorrectAddress,
+    create_logger_handler,
     expand_path,
     get_control_type_and_uri_from_cli,
     get_logger,
@@ -75,10 +76,11 @@ def test_setup_logger(caplog):
     assert drunc_root_logger.getEffectiveLevel() == logging.CRITICAL
     assert get_logger("tester4").getEffectiveLevel() == logging.CRITICAL
 
-    temp_file = tempfile.TemporaryFile()
+    # Make a temporary file to validate logging to a file
+    temp_file = tempfile.NamedTemporaryFile()
     log_path = temp_file.name
-    print(f"log_path: {log_path}")
-    logger = get_logger("tester5", log_file_path=log_path)
+    logger = get_logger("tester5")
+    create_logger_handler(log_file_path=log_path)
     logger.debug("invisible")
     logger.info("invisible")
     logger.warning("invisible")
@@ -86,8 +88,6 @@ def test_setup_logger(caplog):
     logger.critical("VISIBLE")
     good_record = 0
     bad_record = 0
-    temp_file.close()
-
     for record in caplog.records:
         if (
             "VISIBLE" in record.getMessage()
@@ -101,9 +101,12 @@ def test_setup_logger(caplog):
     assert good_record == 1
     assert bad_record == 0
 
-    with open(log_path, "r") as f:
-        assert "VISIBLE" in f.read()
-        assert "invisible" not in f.read()
+    with open(log_path) as f:
+        temp_file_data = f.read()
+        assert "VISIBLE" in temp_file_data
+        assert "invisible" not in temp_file_data
+
+    temp_file.close()
 
 
 def test_get_new_port():
