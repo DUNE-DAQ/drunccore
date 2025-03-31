@@ -60,7 +60,11 @@ def match_children(statuses: list, descriptions: list) -> dict:
 def print_status_table(obj, status: DecodedResponse, description: DecodedResponse):
     from rich.table import Table
 
-    t = Table(title=f"[dark_green]{description.data.session}[/dark_green] status")
+    t = Table(
+        title=f"[dark_green]{description.data.session}[/dark_green] status"
+        if description.data
+        else "[dark_green]status[/dark_green]"
+    )
     t.add_column("Name")
     t.add_column("Info")
     t.add_column("State")

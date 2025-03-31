@@ -15,7 +15,11 @@ from drunc.exceptions import (
     DruncSetupException,
     DruncShellException,
 )
-from drunc.utils.grpc_utils import rethrow_if_unreachable_server, unpack_any
+from drunc.utils.grpc_utils import (
+    UnpackingError,
+    rethrow_if_unreachable_server,
+    unpack_any,
+)
 from drunc.utils.utils import get_logger
 
 
@@ -138,8 +142,12 @@ class GRPCDriver:
         )
 
         if response.flag == ResponseFlag.EXECUTED_SUCCESSFULLY:
-            if response.data not in [None, ""]:
-                dr.data = unpack_any(response.data, outformat)
+            if response.HasField("data") and response.data not in [None, ""]:
+                try:
+                    dr.data = unpack_any(response.data, outformat)
+                except UnpackingError as e:
+                    self.log.error(f"Error unpacking data: {e}")
+                    dr.data = response.data
 
             for c_response in response.children:
                 try:
