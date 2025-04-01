@@ -349,7 +349,6 @@ class SSHProcessManager(ProcessManager):
         return pi
 
     def _ps_impl(self, query: ProcessQuery) -> ProcessInstanceList:
-        self.log.debug(f"{self.name} running ps")
         ret = []
 
         for proc_uuid in self._get_process_uid(query):
