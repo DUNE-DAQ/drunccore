@@ -5,7 +5,7 @@ import time
 
 from druncschema.authoriser_pb2 import ActionType, SystemType
 from druncschema.broadcast_pb2 import BroadcastType
-from druncschema.opmon.opmon_process_manager_pb2 import ProcessStatus
+from druncschema.opmon.process_manager_pb2 import ProcessStatus
 from druncschema.process_manager_pb2 import (
     BootRequest,
     LogLine,
@@ -249,7 +249,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         raise NotImplementedError
 
     # ORDER MATTERS!
-    @broadcasted #  outer most wrapper 1st step
+    @broadcasted  #  outer most wrapper 1st step
     @authentified_and_authorised(
         action=ActionType.CREATE, system=SystemType.PROCESS_MANAGER
     )  # 2nd step
