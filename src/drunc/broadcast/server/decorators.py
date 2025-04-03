@@ -73,11 +73,8 @@ def broadcasted(cmd):
             obj.opmon_publisher.publish(
                 session=obj.session,
                 application=obj.name,
-                message=CommandTime(
-                    cmd_start_time = cmd_start_time,
-                    cmd_execution_time = cmd_exe_time
-                ),
-                custom_origin = {'Command: ',cmd.__name__}
+                message=CommandTime(cmd_execution_time=int(cmd_exe_time) * 1000),
+                custom_origin={"Command": cmd.__name__},
             )
 
         log.debug("Exiting")
