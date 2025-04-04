@@ -6,9 +6,7 @@ from drunc.controller.exceptions import DruncCommandException
 def test_get_segment_lookup_timeout(load_test_config):
     from drunc.utils.configuration import parse_conf_url
 
-    conf_path, conf_type = parse_conf_url(
-        "oksconflibs:many_recursive_segments.data.xml"
-    )
+    conf_path, conf_type = parse_conf_url("oksconflibs:deep-segments-config.data.xml")
     from drunc.controller.utils import get_segment_lookup_timeout
 
     try:
