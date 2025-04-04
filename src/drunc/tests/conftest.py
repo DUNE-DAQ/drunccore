@@ -1,10 +1,13 @@
 import getpass
+import logging
 import os
 import time
 from pathlib import Path
-from subprocess import Popen, run
+from subprocess import Popen
 
 import pytest
+
+logger = logging.getLogger(__name__)
 
 consolidated_conf_path = f"/tmp/drunc-pytests-of-{getpass.getuser()}"
 
@@ -23,12 +26,10 @@ def load_test_config():
     os.environ["DUNEDAQ_DB_PATH"] = DUNEDAQ_DB_PATH
 
 
-@pytest.fixture
-def one_controller_running(load_test_config, request):
+def boot_session(configuration_name, request):
     from drunc.process_manager.oks_parser import collect_apps, collect_infra_apps
 
     req_name = request.node.name
-    configuration_name = "one-controller-config"
     configuration_file = f"{configuration_name}.data.xml"
     configuration_consolidated_file = f"{consolidated_conf_path}/{configuration_name}.{req_name}.consolidated.data.xml"
     from daqconf.consolidate import consolidate_db
@@ -78,7 +79,7 @@ def one_controller_running(load_test_config, request):
         )
         log_file = consolidated_conf_path + "/" + log_file
         args = "{ " + args + "; } &> " + log_file
-        print(f"Running {args}")
+        logger.debug(f"Running {args}")
         process = Popen(
             args=args,
             env=app_info["env"],
@@ -88,16 +89,37 @@ def one_controller_running(load_test_config, request):
         processes[app_info["name"]] = process, log_file
 
     for _ in range(10):
-        with open(processes["local-connection-server"][1], "r") as f:
-            if "[INFO] Starting gunicorn" in f.readline():
-                break
+        if os.path.exists(processes["local-connection-server"][1]):
+            with open(processes["local-connection-server"][1], "r") as f:
+                if "[INFO] Starting gunicorn" in f.readline():
+                    break
         time.sleep(0.1)
 
-    yield processes, session_dal, session_name
+    return processes, session_dal, session_name
 
-    for name, process in processes.items():
-        if process[0].poll() is None:
-            print(f"Killing {name}: {process[0].pid}")
-            process[0].kill()
 
-    run(["killall", "gunicorn", "drunc-controller"])
+@pytest.fixture
+def one_controller_running(load_test_config, request):
+    configuration_name = "one-controller-config"
+    processes_and_logs, session_dal, session_name = boot_session(
+        configuration_name, request
+    )
+    yield processes_and_logs, session_dal, session_name
+    for name, process_and_log in processes_and_logs.items():
+        if process_and_log[0].poll() is None:
+            print(f"Killing {name}: {process_and_log[0].pid}")
+            process_and_log[0].kill()
+
+
+@pytest.fixture
+def many_controllers_running(load_test_config, request):
+    configuration_name = "deep-segments-config"
+    processes_and_logs, session_dal, session_name = boot_session(
+        configuration_name, request
+    )
+
+    yield processes_and_logs, session_dal, session_name
+    for name, process_and_log in processes_and_logs.items():
+        if process_and_log[0].poll() is None:
+            print(f"Killing {name}: {process_and_log[0].pid}")
+            process_and_log[0].kill()
