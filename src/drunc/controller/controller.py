@@ -282,6 +282,7 @@ class Controller(ControllerServicer):
 
         # do this at the end, otherwise we need to self.terminate() if an exception is raised
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
+        self.log.info("Controller ready")
 
     """
     A couple of simple pass-through functions to the broadcasting service
@@ -327,7 +328,7 @@ class Controller(ControllerServicer):
             return
 
         self.log.info(
-            f"Registering {self.name} to the connectivity service at {address}"
+            f"Registering {self.name} ({address}) to the connectivity service at {self.connectivity_service.address}"
         )
 
         self.running = True
