@@ -115,9 +115,9 @@ class ConnectivityServiceClient:
                 if fail_quickly:
                     return
 
-    def resolve(self, uid_regex: str, data_type: str) -> dict:
+    def resolve(self, uid_regex: str, data_type: str, ntries=50) -> dict:
         data = {"data_type": data_type, "uid_regex": uid_regex}
-        for i in range(50):
+        for i in range(ntries):
             try:
                 self.log.debug(
                     f"Looking up '{uid_regex}' on the connectivity service, attempt {i + 1}"
