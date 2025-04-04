@@ -73,7 +73,7 @@ def broadcasted(cmd):
             obj.opmon_publisher.publish(
                 session=obj.session,
                 application=obj.name,
-                message=CommandTime(cmd_execution_time=int(cmd_exe_time * 1e9)),
+                message=CommandTime(execution_time_ns=int(cmd_exe_time * 1e9)),
                 custom_origin={"Command": cmd.__name__},
             )
 
