@@ -4,7 +4,6 @@ import signal
 import tempfile
 import threading
 import uuid
-from ctypes import cdll
 from time import sleep
 
 import sh
@@ -21,35 +20,9 @@ from druncschema.process_manager_pb2 import (
     ProcessUUID,
 )
 
-from drunc.exceptions import DruncCommandException, DruncException
+from drunc.exceptions import DruncCommandException
 from drunc.process_manager.process_manager import ProcessManager
-
-# # ------------------------------------------------
-# # pexpect.spawn(...,preexec_fn=on_parent_exit('SIGTERM'))
-
-# Constant taken from http://linux.die.net/include/linux/prctl.h
-PR_SET_PDEATHSIG = 1
-
-
-class PrCtlError(DruncException):
-    pass
-
-
-def on_parent_exit(signum):
-    """Return a function to be run in a child process which will trigger
-    SIGNAME to be sent when the parent process dies
-    """
-
-    def set_parent_exit_signal():
-        # http://linux.die.net/man/2/prctl
-        result = cdll["libc.so.6"].prctl(PR_SET_PDEATHSIG, signum)
-        if result != 0:
-            raise PrCtlError("prctl failed with error code %s" % result)
-
-    return set_parent_exit_signal
-
-
-# ------------------------------------------------
+from drunc.process_manager.utils import on_parent_exit
 
 
 class AppProcessWatcherThread(threading.Thread):
