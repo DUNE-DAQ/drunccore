@@ -92,7 +92,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             data=self.configuration.data.authoriser, type=ConfTypes.PyObject
         )
 
-        self.opmon_publisher = getattr(self.configuration.data.opmon_publisher,None)
+        self.opmon_publisher = getattr(self.configuration.data,"opmon_publisher",None)
         opmon_sleep_time = getattr(self.configuration.data, "opmon_sleep_time", 5)
         self.authoriser = DummyAuthoriser(dach, SystemType.PROCESS_MANAGER)
 
@@ -155,17 +155,19 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
 
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
 
-        self.stop_event = threading.Event()
-        self.thread = threading.Thread(
-            target=self.publish,
-            args=(ProcessQuery(names=[".*"]), opmon_sleep_time),
-            daemon=True,
-        )
-        self.thread.start()
+        if self.opmon_publisher is not None:
+            self.stop_event = threading.Event()
+            self.thread = threading.Thread(
+                target=self.publish,
+                args=(ProcessQuery(names=[".*"]), opmon_sleep_time),
+                daemon=True,
+            )
+            self.thread.start()
 
     def __del__(self):
-        self.stop_event.set()
-        self.thread.join()
+        if self.opmon_publisher is not None:
+            self.stop_event.set()
+            self.thread.join()
 
     def publish(self, q: ProcessQuery, sleep_time: float = 5):
         while not self.stop_event.is_set():
@@ -187,15 +189,13 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
                     for process in results.values
                 }
             )
-
-            if self.opmon_publisher is not None:
-                self.opmon_publisher.publish(
-                    session=self.session,
-                    application=self.name,
-                    message=ProcessStatus(
-                        n_running=n_running, n_dead=n_dead, n_session=n_session
-                    ),
-                )
+            self.opmon_publisher.publish(
+                session=self.session,
+                application=self.name,
+                message=ProcessStatus(
+                    n_running=n_running, n_dead=n_dead, n_session=n_session
+                ),
+            )
             time.sleep(sleep_time)
 
     """
