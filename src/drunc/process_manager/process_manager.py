@@ -92,7 +92,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
             data=self.configuration.data.authoriser, type=ConfTypes.PyObject
         )
 
-        self.opmon_publisher = self.configuration.data.opmon_publisher
+        self.opmon_publisher = getattr(self.configuration.data.opmon_publisher,None)
         opmon_sleep_time = getattr(self.configuration.data, "opmon_sleep_time", 5)
         self.authoriser = DummyAuthoriser(dach, SystemType.PROCESS_MANAGER)
 
