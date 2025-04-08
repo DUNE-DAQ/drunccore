@@ -16,6 +16,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          git clone https://github.com/DUNE-DAQ/druncschema.git
+          cd druncschema
+          pip install .
+          cd -
           pip install .
       - name: Test with pytest
         run: |
