@@ -16,7 +16,6 @@ from druncschema.controller_pb2 import (
 from druncschema.controller_pb2_grpc import ControllerServicer
 from druncschema.generic_pb2 import PlainText, Stacktrace
 from druncschema.request_response_pb2 import (
-    CommandDescription,
     Description,
     Response,
     ResponseFlag,
@@ -216,69 +215,69 @@ class Controller(ControllerServicer):
                 self.log.info(child)
                 child.propagate_command("take_control", None, self.actor.get_token())
 
-        # TODO, probably need to think of a better way to do this?
-        # Maybe I should "bind" the commands to their methods, and have something looping over this list to generate the gRPC functions
-        # Not particularly pretty...
-        self.commands = [
-            CommandDescription(
-                name="describe",
-                data_type=["None"],
-                help="Describe self (return a list of commands, the type of endpoint, the name and session).",
-                return_type="request_response_pb2.Description",
-            ),
-            CommandDescription(
-                name="status",
-                data_type=["None"],
-                help="Get the status of self",
-                return_type="controller_pb2.Status",
-            ),
-            CommandDescription(
-                name="describe_fsm",
-                data_type=["generic_pb2.PlainText", "None"],
-                help="""Return a description of the FSM transitions:
-                    if a transition name is provided in its input, return that transition description;
-                    if a state is provided, return the transitions accessible from that state;
-                    if "all-transitions" is provided, return all the transitions;
-                    if nothing (None) is provided, return the transitions accessible from the current state.""",
-                return_type="request_response_pb2.Description",
-            ),
-            CommandDescription(
-                name="execute_fsm_command",
-                data_type=["controller_pb2.FSMCommand"],
-                help="Execute an FSM command",
-                return_type="controller_pb2.FSMCommandResponse",
-            ),
-            CommandDescription(
-                name="include",
-                data_type=["generic_pb2.PlainText"],
-                help="Include self in the current session, if a children is provided, include it and its eventual children",
-                return_type="controller_pb2.FSMCommandResponse",
-            ),
-            CommandDescription(
-                name="exclude",
-                data_type=["generic_pb2.PlainText"],
-                help="Exclude self in the current session, if a children is provided, exclude it and its eventual children",
-                return_type="controller_pb2.FSMCommandResponse",
-            ),
-            CommandDescription(
-                name="take_control",
-                data_type=["None"],
-                help="Take control of self and children",
-                return_type="generic_pb2.PlainText",
-            ),
-            CommandDescription(
-                name="surrender_control",
-                data_type=["None"],
-                help="Surrender control of self and children",
-                return_type="generic_pb2.PlainText",
-            ),
-            CommandDescription(
-                name="who_is_in_charge",
-                data_type=["None"],
-                help="Get who is in control of self",
-                return_type="generic_pb2.PlainText",
-            ),
-        ]
+        # # TODO, probably need to think of a better way to do this?
+        # # Maybe I should "bind" the commands to their methods, and have something looping over this list to generate the gRPC functions
+        # # Not particularly pretty...
+        # self.commands = [
+        #     CommandDescription(
+        #         name="describe",
+        #         data_type=["None"],
+        #         help="Describe self (return a list of commands, the type of endpoint, the name and session).",
+        #         return_type="request_response_pb2.Description",
+        #     ),
+        #     CommandDescription(
+        #         name="status",
+        #         data_type=["None"],
+        #         help="Get the status of self",
+        #         return_type="controller_pb2.Status",
+        #     ),
+        #     CommandDescription(
+        #         name="describe_fsm",
+        #         data_type=["generic_pb2.PlainText", "None"],
+        #         help="""Return a description of the FSM transitions:
+        #             if a transition name is provided in its input, return that transition description;
+        #             if a state is provided, return the transitions accessible from that state;
+        #             if "all-transitions" is provided, return all the transitions;
+        #             if nothing (None) is provided, return the transitions accessible from the current state.""",
+        #         return_type="request_response_pb2.Description",
+        #     ),
+        #     CommandDescription(
+        #         name="execute_fsm_command",
+        #         data_type=["controller_pb2.FSMCommand"],
+        #         help="Execute an FSM command",
+        #         return_type="controller_pb2.FSMCommandResponse",
+        #     ),
+        #     CommandDescription(
+        #         name="include",
+        #         data_type=["generic_pb2.PlainText"],
+        #         help="Include self in the current session, if a children is provided, include it and its eventual children",
+        #         return_type="controller_pb2.FSMCommandResponse",
+        #     ),
+        #     CommandDescription(
+        #         name="exclude",
+        #         data_type=["generic_pb2.PlainText"],
+        #         help="Exclude self in the current session, if a children is provided, exclude it and its eventual children",
+        #         return_type="controller_pb2.FSMCommandResponse",
+        #     ),
+        #     CommandDescription(
+        #         name="take_control",
+        #         data_type=["None"],
+        #         help="Take control of self and children",
+        #         return_type="generic_pb2.PlainText",
+        #     ),
+        #     CommandDescription(
+        #         name="surrender_control",
+        #         data_type=["None"],
+        #         help="Surrender control of self and children",
+        #         return_type="generic_pb2.PlainText",
+        #     ),
+        #     CommandDescription(
+        #         name="who_is_in_charge",
+        #         data_type=["None"],
+        #         help="Get who is in control of self",
+        #         return_type="generic_pb2.PlainText",
+        #     ),
+        # ]
 
         # do this at the end, otherwise we need to self.terminate() if an exception is raised
         self.broadcast(message="ready", btype=BroadcastType.SERVER_READY)
@@ -571,7 +570,7 @@ class Controller(ControllerServicer):
                 endpoint=self.uri if self.uri is not None else "unknown",
                 info=get_detector_name(self.configuration),
                 session=self.session,
-                commands=self.commands,
+                # commands=self.commands,
             )
             if bd:
                 d.broadcast.CopyFrom(pack_to_any(bd))
