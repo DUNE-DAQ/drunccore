@@ -10,7 +10,6 @@ jobs:
     container:
       image: ghcr.io/dune-daq/nightly-release-alma9:development_v5
     steps:
-      - uses: actions/checkout@v4
       - name: Set up dev nightly
         run: |
           mkdir nightly
