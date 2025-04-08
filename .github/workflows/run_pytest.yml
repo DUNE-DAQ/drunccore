@@ -24,8 +24,10 @@ jobs:
           source env.sh
           dbt-build
           dbt-workarea-env
-      - name: Install dependencies
+      - name: Install druncschema and drunc
         run: |
+          cd nightly/NFD_DEV* || true
+          source env.sh
           python -m pip install --upgrade pip
           git clone https://github.com/DUNE-DAQ/druncschema.git -b ${{ github.ref_name }} ||  git clone https://github.com/DUNE-DAQ/druncschema.git
           git clone https://github.com/DUNE-DAQ/drunc.git -b ${{ github.ref_name }}
@@ -34,7 +36,9 @@ jobs:
           cd -
           cd drunc
           pip install .
-      - name: Test with pytest
+      - name: Test with pytest/pytest-cov
         run: |
+          cd nightly/NFD_DEV* || true
+          source env.sh
           pip install pytest pytest-cov
           pytest --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
