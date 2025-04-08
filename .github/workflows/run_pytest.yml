@@ -4,9 +4,12 @@ on:
   push:
 
 jobs:
-  build:
+  install_and_test:
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     container:
       image: ghcr.io/dune-daq/nightly-release-alma9:development_v5
     steps:
