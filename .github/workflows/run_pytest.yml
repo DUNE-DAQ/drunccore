@@ -1,7 +1,7 @@
-name: Python package
+name: Run pytest
 
 on:
-  pull_request:
+  push:
 
 jobs:
   build:
