@@ -7,11 +7,14 @@ jobs:
   install_and_test:
 
     runs-on: ubuntu-latest
+
     defaults:
       run:
         shell: bash
+
     container:
       image: ghcr.io/dune-daq/nightly-release-alma9:development_v5
+
     steps:
       - name: Set up dev nightly
         run: |
@@ -24,6 +27,7 @@ jobs:
           source env.sh
           dbt-build
           dbt-workarea-env
+
       - name: Install druncschema and drunc
         run: |
           cd nightly/NFD_DEV* || true
@@ -36,10 +40,29 @@ jobs:
           cd -
           cd drunc
           pip install .
+
       - name: Test with pytest/pytest-cov
         run: |
           cd nightly/NFD_DEV* || true
           source env.sh
           cd drunc || true
           pip install pytest pytest-cov
-          pytest --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+          pytest --doctest-modules --junitxml=junit/test-results.xml --cov=drunc --cov-report=xml --cov-report=html
+
+      - name: Upload JUnit test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: nightly/NFD_DEV*/junit/test-results.xml
+
+      - name: Upload coverage report (HTML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-coverage-report
+          path: nightly/NFD_DEV*/htmlcov/
+
+      - name: Upload coverage report (XML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: nightly/NFD_DEV*/coverage.xml
