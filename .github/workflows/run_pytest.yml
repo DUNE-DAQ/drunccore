@@ -40,5 +40,6 @@ jobs:
         run: |
           cd nightly/NFD_DEV* || true
           source env.sh
+          cd drunc || true
           pip install pytest pytest-cov
           pytest --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
