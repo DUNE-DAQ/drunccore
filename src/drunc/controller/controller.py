@@ -988,7 +988,7 @@ class Controller(ControllerServicer):
     @unpack_addressed_command_to(PlainText)  # 3rd step
     def execute_expert_command(
         self,
-        command: PlainText,
+        payload: PlainText,
         addressed_commands: dict[str, AddressedCommand],
         execute_on_self: bool,
         token: Token,
