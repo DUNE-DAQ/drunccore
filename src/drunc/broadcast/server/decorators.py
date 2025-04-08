@@ -1,10 +1,10 @@
 import time
 import traceback
 
+from druncschema.controller_pb2 import FSMCommand
 from druncschema.generic_pb2 import Stacktrace
 from druncschema.opmon.FSM_pb2 import CommandTime
 from druncschema.request_response_pb2 import Response, ResponseFlag
-from druncschema.controller_pb2 import FSMCommand
 
 from drunc.exceptions import DruncException
 from drunc.utils.grpc_utils import pack_to_any
