@@ -3,8 +3,6 @@ from enum import Enum
 from importlib.resources import path
 from urllib.parse import urlparse
 
-from kafkaopmon.OpMonPublisher import OpMonPublisher
-
 from drunc.broadcast.server.configuration import KafkaBroadcastSenderConfData
 from drunc.exceptions import DruncCommandException
 from drunc.process_manager.exceptions import UnknownProcessManagerType
@@ -85,6 +83,8 @@ class ProcessManagerConfHandler(ConfHandler):
 
         if opmon_type == "stream":
             try:
+                from kafkaopmon.OpMonPublisher import OpMonPublisher  # isort:skip
+
                 new_data.opmon_publisher = OpMonPublisher(
                     default_topic=opmon_topic, bootstrap=opmon_bootstrap
                 )

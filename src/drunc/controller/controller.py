@@ -95,8 +95,6 @@ class Controller(ControllerServicer):
     children_nodes = []  # type: List[ChildNode]
 
     def __init__(self, configuration, name: str, session: str, token: Token):
-        from kafkaopmon.OpMonPublisher import OpMonPublisher
-
         super().__init__()
 
         self.name = name
@@ -125,6 +123,8 @@ class Controller(ControllerServicer):
         self.opmon_publisher = None
 
         if self.configuration.session.opmon_uri:
+            from kafkaopmon.OpMonPublisher import OpMonPublisher  # isort:skip
+
             opmon_path = self.configuration.session.opmon_uri.path
             opmon_type = self.configuration.session.opmon_uri.type
 
