@@ -199,7 +199,7 @@ async def kill(obj: ProcessManagerContext, query: ProcessQuery) -> None:
 @run_coroutine
 async def flush(obj: ProcessManagerContext, query: ProcessQuery) -> None:
     log = get_logger("process_manager.shell")
-    log.debug(f"process_manager running flish with query {query}")
+    log.debug(f"Flushing with query {query}")
     result = await obj.get_driver("process_manager").flush(query=query)
     if not result:
         return
@@ -210,7 +210,13 @@ async def flush(obj: ProcessManagerContext, query: ProcessQuery) -> None:
 
 @click.command("logs")
 @add_query_options(at_least_one=True)
-@click.option("--how-far", type=int, default=100, help="How many lines one wants")
+@click.option(
+    "--how-far",
+    type=int,
+    show_default=True,
+    default=100,
+    help="How many lines one wants",
+)
 @click.option("--grep", type=str, default=None)
 @click.pass_obj
 @run_coroutine

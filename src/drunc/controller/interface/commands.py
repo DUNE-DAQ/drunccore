@@ -2,7 +2,6 @@ import json
 from time import sleep
 
 import click
-from druncschema.generic_pb2 import PlainTextVector
 
 from drunc.controller.interface.context import ControllerContext
 from drunc.controller.interface.shell_utils import controller_setup, print_status_table
@@ -13,7 +12,11 @@ logger_params = {"logger_name": "controller.interface", "rich_handler": True}
 
 @click.command("list-transitions")
 @click.option(
-    "--all", is_flag=True, help="List all transitions (available and unavailable)"
+    "--all",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="List all transitions (available and unavailable)",
 )
 @click.option("--target", type=str, help="The target to address", default="")
 @click.pass_obj
@@ -55,14 +58,16 @@ def wait(obj: ControllerContext, sleep_time: int) -> None:
 @click.command("status")
 @click.option("--target", type=str, help="The target to address", default="")
 @click.option(
-    "--execute-along-path",
-    type=bool,
+    "--execute-along-path/--dont-execute-along-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command along the path",
     default=True,
 )
 @click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
+    "--execute-on-all-subsequent-children-in-path/--dont-execute-on-all-subsequent-children-in-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command on all subsequent children in the path",
     default=True,
 )
@@ -89,14 +94,16 @@ def status(
 @click.command("recompute-status")
 @click.option("--target", type=str, help="The target to address", default="")
 @click.option(
-    "--execute-along-path",
-    type=bool,
+    "--execute-along-path/--dont-execute-along-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command along the path",
     default=True,
 )
 @click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
+    "--execute-on-all-subsequent-children-in-path/--dont-execute-on-all-subsequent-children-in-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command on all subsequent children in the path",
     default=True,
 )
@@ -183,14 +190,16 @@ You can also find the controller address on the connectivity service.
 @click.command("take-control")
 @click.option("--target", type=str, help="The target to address", default="")
 @click.option(
-    "--execute-along-path",
-    type=bool,
+    "--execute-along-path/--dont-execute-along-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command along the path",
     default=True,
 )
 @click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
+    "--execute-on-all-subsequent-children-in-path/--dont-execute-on-all-subsequent-children-in-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command on all subsequent children in the path",
     default=True,
 )
@@ -211,14 +220,16 @@ def take_control(
 @click.command("surrender-control")
 @click.option("--target", type=str, help="The target to address", default="")
 @click.option(
-    "--execute-along-path",
-    type=bool,
+    "--execute-along-path/--dont-execute-along-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command along the path",
     default=True,
 )
 @click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
+    "--execute-on-all-subsequent-children-in-path/--dont-execute-on-all-subsequent-children-in-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command on all subsequent children in the path",
     default=True,
 )
@@ -246,14 +257,16 @@ def who_am_i(obj: ControllerContext) -> None:
 @click.command("who-is-in-charge")
 @click.option("--target", type=str, help="The target to address", default="")
 @click.option(
-    "--execute-along-path",
-    type=bool,
+    "--execute-along-path/--dont-execute-along-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command along the path",
     default=True,
 )
 @click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
+    "--execute-on-all-subsequent-children-in-path/--dont-execute-on-all-subsequent-children-in-path",
+    is_flag=True,
+    show_default=True,
     help="Execute the command on all subsequent children in the path",
     default=True,
 )
@@ -279,36 +292,18 @@ def who_is_in_charge(
 
 
 @click.command("include")
-@click.argument("children", type=str, nargs=-1)
 @click.option("--target", type=str, help="The target to address", default="")
-@click.option(
-    "--execute-along-path",
-    type=bool,
-    help="Execute the command along the path",
-    default=False,
-)
-@click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
-    help="Execute the command on all subsequent children in the path",
-    default=True,
-)
 @click.pass_obj
 def include(
     obj: ControllerContext,
-    children: list[str],
     target: str,
-    execute_along_path: bool,
-    execute_on_all_subsequent_children_in_path: bool,
 ) -> None:
-    data = PlainTextVector(text=children)
     result = (
         obj.get_driver("controller")
         .include(
             target=target,
-            execute_along_path=execute_along_path,
-            execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
-            arguments=data,
+            execute_along_path=False,
+            execute_on_all_subsequent_children_in_path=True,
         )
         .data
     )
@@ -319,36 +314,18 @@ def include(
 
 
 @click.command("exclude")
-@click.argument("children", type=str, nargs=-1)
 @click.option("--target", type=str, help="The target to address", default="")
-@click.option(
-    "--execute-along-path",
-    type=bool,
-    help="Execute the command along the path",
-    default=False,
-)
-@click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
-    help="Execute the command on all subsequent children in the path",
-    default=True,
-)
 @click.pass_obj
 def exclude(
     obj: ControllerContext,
-    children: list[str],
     target: str,
-    execute_along_path: bool,
-    execute_on_all_subsequent_children_in_path: bool,
 ) -> None:
-    data = PlainTextVector(text=children)
     result = (
         obj.get_driver("controller")
         .exclude(
             target=target,
-            execute_along_path=execute_along_path,
-            execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
-            arguments=data,
+            execute_along_path=False,
+            execute_on_all_subsequent_children_in_path=True,
         )
         .data
     )
@@ -363,30 +340,17 @@ def exclude(
     "-s",
     "--string",
     is_flag=True,
+    show_default=True,
     help="Read the command directly from the command line, else you need to write a file and provide its path",
 )
 @click.argument("command", type=str)
 @click.option("--target", type=str, help="The target to address", default="")
-@click.option(
-    "--execute-along-path",
-    type=bool,
-    help="Execute the command along the path",
-    default=False,
-)
-@click.option(
-    "--execute-on-all-subsequent-children-in-path",
-    type=bool,
-    help="Execute the command on all subsequent children in the path",
-    default=True,
-)
 @click.pass_obj
 def expert_command(
     obj: ControllerContext,
     command: str,
     string: bool,
     target: str,
-    execute_along_path: bool,
-    execute_on_all_subsequent_children_in_path: bool,
 ) -> None:
     data = dict()
     log = get_logger(**logger_params)
@@ -407,8 +371,8 @@ def expert_command(
 
     result = obj.get_driver("controller").expert_command(
         target=target,
-        execute_along_path=execute_along_path,
-        execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
+        execute_along_path=False,
+        execute_on_all_subsequent_children_in_path=True,
         json_string=json.dumps(data),
     )
 

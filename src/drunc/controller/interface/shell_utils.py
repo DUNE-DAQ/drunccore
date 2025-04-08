@@ -371,14 +371,16 @@ def run_one_fsm_command(
     transition_name,
     obj,
     target,
-    execute_along_path,
-    execute_on_all_subsequent_children_in_path,
     **kwargs,
 ):
     log = logging.getLogger("controller.shell_utils")
     log.info(
-        f"Running transition '{transition_name}' on controller '{controller_name}'"
+        f"Running transition '{transition_name}' on controller '{controller_name}', targetting: {target}"
     )
+
+    execute_along_path = False
+    execute_on_all_subsequent_children_in_path = True
+
     fsm_description = (
         obj.get_driver("controller")
         .describe_fsm(
@@ -395,10 +397,6 @@ def run_one_fsm_command(
     elif target == controller_name:
         execute_on_root_controller = True
     elif target == "/" + controller_name:
-        execute_on_root_controller = True
-    elif target.startswith(controller_name + "/") and execute_along_path:
-        execute_on_root_controller = True
-    elif target.startswith("/" + controller_name + "/") and execute_along_path:
         execute_on_root_controller = True
 
     if execute_on_root_controller:
@@ -482,18 +480,6 @@ def generate_fsm_command(ctx, transition: FSMCommandDescription, controller_name
         help="The target to address",
         default="",
     )(cmd)
-    cmd = click.option(
-        "--execute-along-path",
-        type=bool,
-        help="Execute the command along the path",
-        default=True,
-    )(cmd)
-    cmd = click.option(
-        "--execute-on-all-subsequent-children-in-path",
-        type=bool,
-        help="Execute the command on all subsequent children in the path",
-        default=True,
-    )(cmd)
 
     for argument in transition.arguments:
         atype = None
@@ -539,6 +525,7 @@ def generate_fsm_command(ctx, transition: FSMCommandDescription, controller_name
             default=atype(default_value.value)
             if argument.presence != Argument.Presence.MANDATORY
             else None,
+            show_default=True,
             required=argument.presence == Argument.Presence.MANDATORY,
             help=argument.help,
         )(cmd)

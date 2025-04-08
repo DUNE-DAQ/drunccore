@@ -6,36 +6,20 @@ from druncschema.process_manager_pb2 import ProcessQuery
 from drunc.controller.interface.shell_utils import controller_setup
 from drunc.process_manager.interface.context import ProcessManagerContext
 from drunc.utils.shell_utils import InterruptedCommand
-from drunc.utils.utils import get_logger, log_levels, run_coroutine
+from drunc.utils.utils import get_logger, run_coroutine
 
 
 @click.command("boot")
-@click.option(
-    "-u",
-    "--user",
-    type=str,
-    default=getpass.getuser(),
-    help="Create the processes for a particular user (default $USER)",
-)
-@click.option(
-    "-l",
-    "--log-level",
-    type=click.Choice(log_levels.keys(), case_sensitive=False),
-    default="INFO",
-    help="Set the log level",
-)
 @click.option("--override-logs/--no-override-logs", default=True)
 @click.pass_obj
 @run_coroutine
 async def boot(
     obj: ProcessManagerContext,
-    user: str,
-    log_level: str,
     override_logs: bool,
 ) -> None:
     log = get_logger("unified_shell.boot")
     session_name = obj.session_name
-
+    user = getpass.getuser()
     processes = await obj.get_driver("process_manager").ps(
         ProcessQuery(user=user, session=session_name)
     )
@@ -52,7 +36,7 @@ async def boot(
             conf_id=obj.configuration_id,
             user=user,
             session_name=session_name,
-            log_level=log_level,
+            log_level="INFO",  # Unused anyway !!
             override_logs=override_logs,
         )
         async for result in results:

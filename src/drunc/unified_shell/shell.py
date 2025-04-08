@@ -33,7 +33,6 @@ from drunc.fsm.configuration import FSMConfHandler
 from drunc.fsm.utils import convert_fsm_transition
 from drunc.process_manager.configuration import get_process_manager_configuration
 from drunc.process_manager.interface.commands import (
-    dummy_boot,
     flush,
     kill,
     logs,
@@ -251,7 +250,6 @@ def unified_shell(
     ctx.command.add_command(logs, "logs")
     ctx.command.add_command(restart, "restart")
     ctx.command.add_command(ps, "ps")
-    ctx.command.add_command(dummy_boot, "dummy_boot")
 
     # Not particularly proud of this...
     # We instantiate a stateful node which has the same configuration as the one from this session
