@@ -19,7 +19,7 @@ jobs:
           cd nightly
           source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
           setup_dbt latest_v5
-          dbt-create -n last-fddaq
+          dbt-create -n last_fddaq
           cd NFD_DEV*
           source env.sh
           dbt-build
