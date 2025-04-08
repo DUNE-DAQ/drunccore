@@ -1,9 +1,14 @@
 import os
 from typing import Dict, List
 
+import conffwk
+import confmodel
+
 from drunc.exceptions import DruncException
 from drunc.process_manager.configuration import get_commandline_parameters
 from drunc.utils.utils import get_logger
+
+dal = conffwk.dal.module("x", "schema/confmodel/dunedaq.schema.xml")
 
 
 def collect_variables(variables, env_dict: Dict[str, str]) -> None:
@@ -45,8 +50,6 @@ def collect_apps(
     @return The list of dictionaries holding application attributs
 
     """
-    import confmodel  # isort:skip
-
     log = get_logger("process_manager.collect_apps")
     # Get default environment from Session
     defenv = env.copy()
@@ -216,8 +219,6 @@ def collect_infra_apps(session, env: Dict[str, str], tree_prefix) -> List[Dict]:
 # Search segment and all contained segments for apps controlled by
 # given controller. Return separate lists of apps and sub-controllers
 def find_controlled_apps(db, session, mycontroller, segment):
-    import confmodel  # isort:skip
-
     apps = []
     controllers = []
     if segment.controller.id == mycontroller:

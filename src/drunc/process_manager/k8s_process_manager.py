@@ -25,7 +25,7 @@ from drunc.broadcast.server.decorators import broadcasted
 from drunc.exceptions import DruncCommandException, DruncException
 from drunc.k8s_exceptions import DruncK8sNamespaceAlreadyExists
 from drunc.process_manager.process_manager import ProcessManager
-from drunc.utils.grpc_utils import unpack_request_data_to
+from drunc.utils.grpc_utils import pack_response, unpack_request_data_to
 from drunc.utils.utils import get_logger
 
 
@@ -464,6 +464,7 @@ class K8sProcessManager(ProcessManager):
         action=ActionType.DELETE, system=SystemType.PROCESS_MANAGER
     )  # 2nd step
     @unpack_request_data_to(ProcessQuery)  # 3rd step
+    @pack_response  # 4th step
     def flush(self, query: ProcessQuery) -> Response:
         ret = []
         self.log.info("Flushing dead processes")
