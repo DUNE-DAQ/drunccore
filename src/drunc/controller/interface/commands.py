@@ -275,7 +275,7 @@ def who_is_in_charge(
     )
     if who:
         log = get_logger(**logger_params)
-        log.info(who.text)
+        log.info(who.text)  ## TODO create a table of who is in charge
 
 
 @click.command("include")
