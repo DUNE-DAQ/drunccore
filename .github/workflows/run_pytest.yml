@@ -1,25 +1,36 @@
 name: Python package
 
-on: [push]
+on:
+  pull_request:
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    container:
+      image: ghcr.io/dune-daq/nightly-release-alma9:development_v5
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Set up dev nightly
+        run: |
+          mkdir nightly
+          cd nightly
+          source /cvmfs/dunedaq.opensciencegrid.org/setup_dunedaq.sh
+          setup_dbt latest_v5
+          dbt-create -n last-fddaq
+          cd NFD_DEV*
+          source env.sh
+          dbt-build
+          dbt-workarea-env
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          git clone https://github.com/DUNE-DAQ/druncschema.git
+          git clone https://github.com/DUNE-DAQ/druncschema.git -b ${{ github.ref_name }} ||  git clone https://github.com/DUNE-DAQ/druncschema.git
+          git clone https://github.com/DUNE-DAQ/drunc.git -b ${{ github.ref_name }}
           cd druncschema
           pip install .
           cd -
+          cd drunc
           pip install .
       - name: Test with pytest
         run: |
