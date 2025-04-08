@@ -49,7 +49,7 @@ def unpack_addressed_command_to(data_type=None):
                         execute_on_all_subsequent_children_in_path=True,
                     )
             except UnpackingError as e:
-                logger.error(f"UnpackingError: {e}")
+                logger.exception(e)
                 return Response(
                     name=obj.name,
                     token=request.token,
@@ -83,6 +83,7 @@ def unpack_addressed_command_to(data_type=None):
                 try:
                     payload = unpack_any(command.command_data, data_type)
                 except UnpackingError as e:
+                    logger.exception(e)
                     return Response(
                         name=obj.name,
                         token=request.token,
