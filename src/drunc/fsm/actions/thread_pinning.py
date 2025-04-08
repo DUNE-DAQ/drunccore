@@ -1,7 +1,6 @@
 import getpass
 from os import environ
 
-import conffwk
 from sh import Command, ErrorReturnCode
 
 from drunc.exceptions import DruncSetupException
@@ -19,6 +18,8 @@ class ThreadPinning(FSMAction):
         self.conf_dict = {p.name: p.value for p in configuration.parameters}
 
     def pin_thread(self, thread_pinning_file, configuration, session):
+        import conffwk  # isort:skip
+
         db = conffwk.Configuration(configuration)
         session_dal = db.get_dal(class_name="Session", uid=session)
 

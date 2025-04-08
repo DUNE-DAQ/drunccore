@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 import click
 import click_shell
-import conffwk
 
 from drunc.connectivity_service.client import ConnectivityServiceClient
 from drunc.controller.configuration import ControllerConfHandler
@@ -96,6 +95,8 @@ def unified_shell(
     override_logs: bool,
     log_path: str,
 ) -> None:
+    import conffwk  # isort:skip
+
     # Set up the drunc and unified_shell loggers
     setup_root_logger(log_level)
     unified_shell_log = get_logger("unified_shell")

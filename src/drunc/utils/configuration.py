@@ -2,8 +2,6 @@ import json
 import os
 from enum import Enum
 
-import conffwk
-
 from drunc.exceptions import DruncSetupException
 from drunc.utils.utils import expand_path, get_logger
 
@@ -88,6 +86,8 @@ class ConfHandler:
 
     def _parse_oks_file(self, oks_path):
         try:
+            import conffwk  # isort:skip
+
             self.oks_path = oks_path
             self.log.debug(f"Using {self.oks_path} to configure")
             self.db = conffwk.Configuration(self.oks_path)
