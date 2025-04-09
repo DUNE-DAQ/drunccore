@@ -932,7 +932,7 @@ class Controller(ControllerServicer):
         return Response(
             name=self.name,
             token=token,
-            data=pack_to_any(resp),
+            data=pack_to_any(resp) if resp else None,
             flag=ResponseFlag.EXECUTED_SUCCESSFULLY,
             children=response_children,
         )
@@ -974,7 +974,7 @@ class Controller(ControllerServicer):
         return Response(
             name=self.name,
             token=token,
-            data=pack_to_any(resp),
+            data=pack_to_any(resp) if resp else None,
             flag=ResponseFlag.EXECUTED_SUCCESSFULLY,
             children=response_children,
         )
