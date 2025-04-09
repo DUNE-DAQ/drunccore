@@ -284,7 +284,7 @@ Where:
  - `data.modules[:].match` is the name of the module, if left blank (""), the command will be propagated to all the module that have registered the command `id`.
 
 `expert-command` command take the following mandatory argument:
- - `command`, which is either the path to a json file that will be sent to the application(s) or, an actual json string (wrapped in `"`). An example of the file can be found in [here](https://github.com/DUNE-DAQ/drunc/blob/develop/data/record.json).
+ - `command`, which is either the path to a json file that will be sent to the application(s) or, an actual json string (wrapped in `"`). An example of the file can be found in [here](https://github.com/DUNE-DAQ/drunc/blob/develop/src/drunc/data/expert-command/record.json).
 
 The `expert-command` command can take the following options:
  - `--target` (optional), allows you to specify a target application/segment for the command. The command will only be run on that application or segment if you specify it. By default, the target is the top segment for the whole session.
