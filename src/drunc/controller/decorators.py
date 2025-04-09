@@ -58,6 +58,11 @@ def unpack_addressed_command_to(data_type=None):
                     children=[],
                 )
 
+            if command.target == "/" or command.target is None or command.target == "":
+                target = obj.name
+            else:
+                target = command.target
+
             try:
                 addressed_commands = address_command(
                     obj=obj,
@@ -67,6 +72,7 @@ def unpack_addressed_command_to(data_type=None):
                     execute_along_path=command.execute_along_path,
                     execute_on_all_subsequent_children_in_path=command.execute_on_all_subsequent_children_in_path,
                 )
+                logger.debug(f"Addressed commands: {addressed_commands}")
             except DruncCommandException as e:
                 logger.exception(e)
                 return Response(
@@ -94,7 +100,7 @@ def unpack_addressed_command_to(data_type=None):
 
             kwargs = {
                 "addressed_commands": addressed_commands,
-                "execute_on_self": command.execute_along_path,
+                "execute_on_self": command.execute_along_path or obj.name == target,
                 "token": request.token,
             }
             if payload is not None:
