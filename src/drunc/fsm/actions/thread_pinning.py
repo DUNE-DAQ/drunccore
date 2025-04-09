@@ -71,7 +71,7 @@ class ThreadPinning(FSMAction):
                     *arguments,
                     _err_to_out=True,
                 )
-                self.log.info(proc.stdout.decode("ascii"))
+                self.log.info(proc)
             except ErrorReturnCode as e:
                 self.log.error(e.stdout.decode("ascii"))
                 self.log.error(e.stderr.decode("ascii"))
