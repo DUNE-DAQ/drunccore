@@ -17,6 +17,7 @@ from rich.table import Table
 from drunc.exceptions import DruncSetupException, DruncShellException
 from drunc.utils.grpc_utils import pack_to_any, unpack_any
 from drunc.utils.shell_utils import DecodedResponse
+from drunc.utils.utils import get_logger
 
 
 def generate_none_status() -> Status:
@@ -373,23 +374,13 @@ def run_one_fsm_command(
     target,
     **kwargs,
 ):
-    log = logging.getLogger("controller.shell_utils")
+    log = get_logger("controller.shell_utils")
     log.info(
-        f"Running transition '{transition_name}' on controller '{controller_name}', targetting: {target}"
+        f"Running transition '{transition_name}' on controller '{controller_name}', targeting: '{target if target else controller_name}'"
     )
 
     execute_along_path = False
     execute_on_all_subsequent_children_in_path = True
-
-    fsm_description = (
-        obj.get_driver("controller")
-        .describe_fsm(
-            target=target,
-            execute_along_path=execute_along_path,
-            execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
-        )
-        .data
-    )
 
     execute_on_root_controller = False
     if target == "":
@@ -400,6 +391,16 @@ def run_one_fsm_command(
         execute_on_root_controller = True
 
     if execute_on_root_controller:
+        fsm_description = (
+            obj.get_driver("controller")
+            .describe_fsm(
+                target=controller_name,
+                execute_along_path=True,
+                execute_on_all_subsequent_children_in_path=False,
+            )
+            .data
+        )
+
         command_desc = search_fsm_command(transition_name, fsm_description.commands)
 
         if command_desc is None:
