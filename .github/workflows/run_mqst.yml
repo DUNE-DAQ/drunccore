@@ -1,7 +1,7 @@
 name: Run MQST
 
 on:
-  pull_request:
+  never-ever:
 
 jobs:
   install_and_test:
@@ -18,13 +18,13 @@ jobs:
     steps:
       - name: Install SSH and run the daemon
         run: |
-          dnf install ssh
+          dnf install openssh-server
+          dnf install openssh-clients
           systemctl start sshd
           systemctl enable sshd
           ssh localhost echo "SSH is working"
 
       - name: Set up dev nightly
-        if: ${{ !cancelled() }}
         run: |
           mkdir nightly
           cd nightly
@@ -37,7 +37,6 @@ jobs:
           dbt-workarea-env
 
       - name: Install druncschema and drunc
-        if: success()
         run: |
           cd nightly/NFD_DEV* || true
           source env.sh
@@ -51,9 +50,7 @@ jobs:
           pip install .
           echo "DRUNC_DIR=$(pwd)" >> $GITHUB_ENV
 
-
       - name: Test with MQST
-        if: success()
         run: |
           cd nightly/NFD_DEV* || true
           source env.sh
