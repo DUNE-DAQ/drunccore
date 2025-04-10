@@ -1,5 +1,6 @@
-[![Lint with ruff](https://github.com/DUNE-DAQ/drunc/actions/workflows/lint.yml/badge.svg)](https://github.com/DUNE-DAQ/drunc/actions/workflows/lint.yml)
-[![Run pytest](https://github.com/DUNE-DAQ/drunc/actions/workflows/run_pytest.yml/badge.svg)](https://github.com/DUNE-DAQ/drunc/actions/workflows/run_pytest.yml)
+[![Lint](https://github.com/DUNE-DAQ/drunc/actions/workflows/lint.yml/badge.svg)](https://github.com/DUNE-DAQ/drunc/actions/workflows/lint.yml)
+[![pytest](https://github.com/DUNE-DAQ/drunc/actions/workflows/run_pytest.yml/badge.svg)](https://github.com/DUNE-DAQ/drunc/actions/workflows/run_pytest.yml)
+[![MQST](https://github.com/DUNE-DAQ/drunc/actions/workflows/run_mqst.yml/badge.svg)](https://github.com/DUNE-DAQ/drunc/actions/workflows/run_mqst.yml)
 
 # DUNE Run Control (drunc)
 
