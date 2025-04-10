@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Install SSH and run the daemon
         run: |
-          dfn install ssh
+          dnf install ssh
           systemctl start sshd
           systemctl enable sshd
           ssh localhost echo "SSH is working"
