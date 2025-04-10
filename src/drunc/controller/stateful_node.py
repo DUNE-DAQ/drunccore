@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-
 from typing import TYPE_CHECKING, Optional
 
 from drunc.exceptions import DruncCommandException
