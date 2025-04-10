@@ -16,6 +16,13 @@ jobs:
       image: ghcr.io/dune-daq/nightly-release-alma9:development_v5
 
     steps:
+      - name: Install SSH and run the daemon
+        run: |
+          dfn install ssh
+          systemctl start sshd
+          systemctl enable sshd
+          ssh localhost echo "SSH is working"
+
       - name: Set up dev nightly
         if: ${{ !cancelled() }}
         run: |
@@ -44,7 +51,8 @@ jobs:
           pip install .
           echo "DRUNC_DIR=$(pwd)" >> $GITHUB_ENV
 
-      - name: Test with pytest/pytest-cov
+
+      - name: Test with MQST
         if: success()
         run: |
           cd nightly/NFD_DEV* || true
