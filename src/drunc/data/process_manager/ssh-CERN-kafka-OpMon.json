@@ -19,6 +19,6 @@
     "opmon_uri": {
         "path": "monkafka.cern.ch:30092/opmon_stream",
         "type": "stream",
-        "sleep_time" : 5
+        "sleep_time" : 10
     }
 }

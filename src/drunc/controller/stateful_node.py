@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+
 from typing import TYPE_CHECKING, Optional
 
 from drunc.exceptions import DruncCommandException
@@ -123,6 +124,7 @@ class StatefulNode(abc.ABC):
                     included=self.__included.value,
                 ),
             )
+
 
     def get_node_operational_state(self):
         return self.__operational_state.value
