@@ -1,31 +1,33 @@
 import json
 import os
-import pytest
 import tempfile
+
+import pytest
 
 from drunc.exceptions import DruncException
 from drunc.fsm.actions.utils import get_dotdrunc_json, validate_run_type
 from drunc.fsm.exceptions import DotDruncJsonIncorrectFormat, DotDruncJsonNotFound
 
 dotdrunc_json = {
-    "run_registry_configuration":{
+    "run_registry_configuration": {
         "socket": "http://bananas:1234",
         "user": "jcvandamme",
-        "password": "karate"
+        "password": "karate",
     },
-    "run_number_configuration":{
+    "run_number_configuration": {
         "socket": "http://bananas:1234",
         "user": "jcvandamme",
-        "password": "karate"
+        "password": "karate",
     },
     "elisa_configuration": {
         "some-detector": {
-           "socket": "http://bananas:1234",
+            "socket": "http://bananas:1234",
             "user": "jcvandamme",
-            "password": "karate"
+            "password": "karate",
         },
-    }
+    },
 }
+
 
 def test_get_dotdrunc_json():
     with tempfile.NamedTemporaryFile(delete=True, mode="w") as f:
