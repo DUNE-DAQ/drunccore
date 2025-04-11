@@ -716,6 +716,16 @@ class Controller(ControllerServicer):
 
             children_fsm_commands = {}
             for target, command in addressed_commands.items():
+                child = next((c for c in self.children_nodes if c.name == target), None)
+                if child is None:
+                    self.log.error(f"Child {target} not found")
+                    continue
+                if not child.included:
+                    self.log.info(
+                        f"Child {target} is not included, not executing command {payload.command_name}."
+                    )
+                    continue
+
                 child_fsm_command = FSMCommand()
                 child_fsm_command.CopyFrom(unpack_any(command.command_data, FSMCommand))
                 child_fsm_command.data = fsm_data
