@@ -36,7 +36,6 @@ class ConnectivityServiceClient:
                 self.log.debug(
                     f"Retracting '{uid}' on the connectivity service, attempt {i + 1}"
                 )
-
                 r = http_post(
                     self.address + "/retract",
                     data=data,
@@ -45,7 +44,6 @@ class ConnectivityServiceClient:
                     timeout=0.5,
                     ignore_errors=True,
                 )
-
                 if r.status_code == 404:
                     self.log.warning(
                         f"Connection '{uid}' not found on the connectivity service"
@@ -97,7 +95,6 @@ class ConnectivityServiceClient:
                     break
 
                 r.raise_for_status()
-                print(r.text)
                 break
 
             except (HTTPError, ConnectionError) as e:
@@ -118,9 +115,9 @@ class ConnectivityServiceClient:
                 if fail_quickly:
                     return
 
-    def resolve(self, uid_regex: str, data_type: str) -> dict:
+    def resolve(self, uid_regex: str, data_type: str, ntries=50) -> dict:
         data = {"data_type": data_type, "uid_regex": uid_regex}
-        for i in range(50):
+        for i in range(ntries):
             try:
                 self.log.debug(
                     f"Looking up '{uid_regex}' on the connectivity service, attempt {i + 1}"

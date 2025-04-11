@@ -16,6 +16,7 @@ from drunc.controller.interface.commands import (
     connect,
     disconnect,
     exclude,
+    expert_command,
     include,
     recompute_status,
     status,
@@ -32,7 +33,6 @@ from drunc.fsm.configuration import FSMConfHandler
 from drunc.fsm.utils import convert_fsm_transition
 from drunc.process_manager.configuration import get_process_manager_configuration
 from drunc.process_manager.interface.commands import (
-    dummy_boot,
     flush,
     kill,
     logs,
@@ -250,7 +250,6 @@ def unified_shell(
     ctx.command.add_command(logs, "logs")
     ctx.command.add_command(restart, "restart")
     ctx.command.add_command(ps, "ps")
-    ctx.command.add_command(dummy_boot, "dummy_boot")
 
     # Not particularly proud of this...
     # We instantiate a stateful node which has the same configuration as the one from this session
@@ -314,6 +313,7 @@ def unified_shell(
     ctx.command.add_command(include, "include")
     ctx.command.add_command(exclude, "exclude")
     ctx.command.add_command(wait, "wait")
+    ctx.command.add_command(expert_command, "expert-command")
 
     unified_shell_log.info(
         "[green]unified_shell[/green] ready with [green]process_manager[/green] and [green]controller[/green] commands"

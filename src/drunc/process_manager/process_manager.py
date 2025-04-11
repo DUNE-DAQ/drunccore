@@ -547,7 +547,7 @@ class ProcessManager(abc.ABC, ProcessManagerServicer):
         name_selector = query.names
         user_selector = query.user
         session_selector = query.session
-        # relevant reading here: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
+        # relevent reading here: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
 
         for uid in query.uuids:
             uuid_selector += [uid.uuid]
