@@ -7,7 +7,11 @@ from druncschema.session_manager_pb2_grpc import add_SessionManagerServicer_to_s
 
 from drunc.session_manager.configuration import SessionManagerConfHandler
 from drunc.session_manager.session_manager import SessionManager
-from drunc.utils.utils import get_logger, setup_root_logger  # log_levels,
+from drunc.utils.utils import (
+    create_logger_handler,
+    get_logger,
+    setup_root_logger,
+)
 
 
 def serve(session_manager: SessionManager, address: str) -> None:
@@ -35,9 +39,12 @@ def serve(session_manager: SessionManager, address: str) -> None:
 # )
 # def session_manager_cli(log_level: str, log_path: str):
 def session_manager_cli():
+    app_name = "session_manager"
     log_level = "DEBUG"
+
     setup_root_logger(log_level)
-    logger = get_logger(logger_name="drunc.session_manager", rich_handler=True)
+    logger = get_logger(app_name)
+    create_logger_handler(rich_handler=True)
 
     # Load the configuration for the session manager.
     config = SessionManagerConfHandler()
@@ -48,7 +55,7 @@ def session_manager_cli():
     logger.info("Creating session manager.")
 
     try:
-        serve(session_manager, "127.0.0.1:50000")
+        serve(session_manager, "0.0.0.0:50000")
     except Exception as e:
         logger.error("Error whilst serving the session manager.")
         logger.exception(e)
