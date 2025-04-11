@@ -870,6 +870,13 @@ class Controller(ControllerServicer):
             ):
                 children_state = children_states.pop()
                 children_sub_state = children_sub_states.pop()
+                self.log.info(
+                    f"Children state: {children_state}, children sub state: {children_sub_state}"
+                )
+
+                if children_sub_state == "idle":
+                    children_sub_state = children_state
+
                 self.stateful_node.resolve_error()
                 self.stateful_node.force_set_node_operational_state(children_state)
                 self.stateful_node.force_set_node_operational_sub_state(
