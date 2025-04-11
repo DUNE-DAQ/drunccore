@@ -889,7 +889,7 @@ class Controller(ControllerServicer):
                 "status",
                 command_data=None,
                 token=token,
-                only_included=True,
+                only_included=False,
             )
             return Response(
                 name=self.name,
