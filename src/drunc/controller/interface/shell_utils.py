@@ -84,6 +84,10 @@ def print_status_table(obj, status: DecodedResponse, description: DecodedRespons
     def add_status_to_table(table, status, description, prefix):
         valid_description = check_message_type(description, "Description")
         valid_status = check_message_type(status, "Status")
+
+        if not valid_description or not valid_status:
+            return
+
         NA = "[red]NA[/]"
         table.add_row(
             prefix + status.name if valid_status else NA,
@@ -96,6 +100,7 @@ def print_status_table(obj, status: DecodedResponse, description: DecodedRespons
             format_bool(status.data.included) if valid_status else NA,
             description.data.endpoint if valid_description else NA,
         )
+
         children = match_children(status.children, description.children)
         children_list = sorted(list(children.keys()))
         for child in children_list:
