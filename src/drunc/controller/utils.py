@@ -17,8 +17,8 @@ from druncschema.controller_pb2 import AddressedCommand  # isort: skip
 
 def get_status_message(stateful: StatefulNode):
     state_string = stateful.get_node_operational_state()
-    if state_string != stateful.get_node_operational_sub_state():
-        state_string += f" ({stateful.get_node_operational_sub_state()})"
+    # if state_string != stateful.get_node_operational_sub_state():
+    #     state_string += f" ({stateful.get_node_operational_sub_state()})"
 
     return Status(
         state=state_string,
