@@ -685,7 +685,7 @@ class Controller(ControllerServicer):
 
             if not self.stateful_node.can_transition(transition):
                 self.log.error(
-                    f'Cannot "{transition.name}" as this is an invalid command in state "{self.stateful_node.node_operational_state()}"'
+                    f'Cannot "{transition.name}" as this is an invalid command in state "{self.stateful_node.get_node_operational_state()}"'
                 )
 
                 fsm_result = FSMCommandResponse(
