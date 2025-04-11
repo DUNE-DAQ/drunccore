@@ -43,18 +43,8 @@ def session_manager_cli():
     log_level = "DEBUG"
 
     setup_root_logger(log_level)
-    # log_path = get_log_path(
-    #     user=getpass.getuser(),
-    #     session_name=pmConfFileName,
-    #     application_name=appName,
-    #     override_logs=override_logs,
-    #     app_log_path=log_path,
-    # )
     logger = get_logger(app_name)
-    create_logger_handler(
-        # log_file_path="",
-        rich_handler=True,
-    )
+    create_logger_handler(rich_handler=True)
 
     # Load the configuration for the session manager.
     config = SessionManagerConfHandler()
