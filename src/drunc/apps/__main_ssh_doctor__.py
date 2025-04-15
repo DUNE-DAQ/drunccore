@@ -1,8 +1,11 @@
 import getpass
+import logging
 import signal
 
 import click
 import conffwk
+from rich import print
+from rich.logging import RichHandler
 from sh import Command
 
 from drunc.process_manager.oks_parser import collect_apps
@@ -10,10 +13,6 @@ from drunc.process_manager.ssh_process_manager import on_parent_exit
 from drunc.utils.utils import (
     log_levels,
 )
-
-from rich import print
-from rich.logging import RichHandler
-import logging
 
 kDefaultAuth='default'
 kPublicKeyAuth='publickey'
@@ -43,9 +42,9 @@ def test_host_connection(host: str, preferred_auth:str=kDefaultAuth) -> bool:
             _preexec_fn=on_parent_exit(signal.SIGTERM),
             _err_to_out=True,
         )
-        print(f":white_check_mark:")
+        print(":white_check_mark:")
     except Exception as e:
-        print(f":x:")
+        print(":x:")
 
         # print(f"Failed to SSH onto host [red]{user_host}[/red]")
         # print(e)
