@@ -131,7 +131,7 @@ class Controller(ControllerServicer):
                 self.opmon_sleep_time = self.configuration.session.opmon_uri.sleep_time
             else:
                 self.opmon_sleep_time = 10
-                self.log.info(f"Couldn't find sleep time in opmon_uri configuration, use default value of 10s")            
+                self.log.info("Couldn't find sleep time in opmon_uri configuration, use default value of 10s")            
 
             self.log.info(f"OpMon path {opmon_path} and type {opmon_type} is enabled, sleep time {self.opmon_sleep_time}s")
 
