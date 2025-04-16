@@ -11,7 +11,6 @@ from drunc.utils.grpc_utils import pack_to_any
 from drunc.utils.utils import get_logger
 
 
-
 def broadcasted(cmd):
     import functools
 
