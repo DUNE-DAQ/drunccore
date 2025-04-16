@@ -44,3 +44,21 @@ def get_dotdrunc_json(path: str = "~/.drunc.json"):
         )
 
     return dotdrunc
+
+
+def publish_runinfo(_context,
+        run_number: int,
+        disable_data_storage: bool = False,
+        trigger_rate: float = 0.0,
+        run_type: str = "TEST",):   
+    if _context.opmon_publisher:
+                _context.opmon_publisher.publish(
+                    session=_session,
+                    application=_name,
+                    message=RunInfo(
+                        run_type=run_type,
+                        trigger_rate=trigger_rate,
+                        run_number=run_number,
+                        disable_data_storage=disable_data_storage,
+                    ),
+                )
