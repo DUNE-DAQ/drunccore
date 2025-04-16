@@ -127,8 +127,13 @@ class Controller(ControllerServicer):
         if self.configuration.session.opmon_uri:
             opmon_path = self.configuration.session.opmon_uri.path
             opmon_type = self.configuration.session.opmon_uri.type
+            if hasattr(self.configuration.session.opmon_uri, "sleep_time"):
+                self.opmon_sleep_time = self.configuration.session.opmon_uri.sleep_time
+            else:
+                self.opmon_sleep_time = 10
+                self.log.info("Couldn't find sleep time in opmon_uri configuration, use default value of 10s")            
 
-            self.log.info(f"OpMon path {opmon_path} and type {opmon_type} is enabled")
+            self.log.info(f"OpMon path {opmon_path} and type {opmon_type} is enabled, sleep time {self.opmon_sleep_time}s")
 
             if "/" in opmon_path:
                 opmon_bootstrap, opmon_topic = opmon_path.split("/", 1)
@@ -147,6 +152,16 @@ class Controller(ControllerServicer):
             name=name,
             session=session,
         )
+        
+        if self.opmon_publisher is not None:
+            self.stop_event = threading.Event()
+            self.thread = threading.Thread(
+                target=self.threading_publish_state,
+                args=(self.opmon_sleep_time,),
+                daemon=True,
+                )
+            self.thread.start()
+      
 
         dach = DummyAuthoriserConfHandler(
             data=self.configuration.authoriser,
@@ -304,6 +319,15 @@ class Controller(ControllerServicer):
     def async_interrupt_with_exception(self, *args, **kwargs):
         return self.broadcast_service._async_interrupt_with_exception(*args, **kwargs)
 
+    def threading_publish_state(self, sleep_time: float = 10.0):
+        while not self.stop_event.is_set():
+            try:
+                self.log.debug(f"Publishing periodic FSM status every {sleep_time}s")
+                self.stateful_node.publish_state()
+            except Exception as e:
+                self.log.warning(f"Error while publishing periodic FSM status: {e}")
+            time.sleep(sleep_time)
+
     def construct_error_node_response(
         self, command_name: str, token: Token, cause: FSMResponseFlag
     ) -> Response:
@@ -352,6 +376,9 @@ class Controller(ControllerServicer):
 
     def terminate(self):
         self.running = False
+        if self.opmon_publisher is not None:
+            self.stop_event.set()
+            self.thread.join()
 
         if hasattr(self, "connectivity_service") and self.connectivity_service:
             if self.connectivity_service_thread:

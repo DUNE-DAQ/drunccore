@@ -124,6 +124,7 @@ class StatefulNode(abc.ABC):
                 ),
             )
 
+
     def get_node_operational_state(self):
         return self.__operational_state.value
 

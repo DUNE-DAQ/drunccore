@@ -44,3 +44,5 @@ def get_dotdrunc_json(path: str = "~/.drunc.json"):
         )
 
     return dotdrunc
+
+
