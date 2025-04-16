@@ -15,8 +15,12 @@ from drunc.exceptions import (
     DruncSetupException,
     DruncShellException,
 )
-from drunc.utils.grpc_utils import rethrow_if_unreachable_server, unpack_any
-from drunc.utils.utils import get_logger, print_traceback, setup_root_logger
+from drunc.utils.grpc_utils import (
+    UnpackingError,
+    rethrow_if_unreachable_server,
+    unpack_any,
+)
+from drunc.utils.utils import get_logger
 
 
 class InterruptedCommand(DruncShellException):
@@ -136,9 +140,14 @@ class GRPCDriver:
             token=response.token,
             flag=response.flag,
         )
+
         if response.flag == ResponseFlag.EXECUTED_SUCCESSFULLY:
-            if response.data not in [None, ""]:
-                dr.data = unpack_any(response.data, outformat)
+            if response.HasField("data") and response.data not in [None, ""]:
+                try:
+                    dr.data = unpack_any(response.data, outformat)
+                except UnpackingError as e:
+                    self.log.error(f"Error unpacking data: {e}")
+                    dr.data = response.data
 
             for c_response in response.children:
                 try:
@@ -151,8 +160,32 @@ class GRPCDriver:
 
         else:
 
-            def text(verb="not executed"):
-                return f"Command '{command}' {verb} on '{response.name}' (response flag '{ResponseFlag.Name(response.flag)}')"
+            def text(verb="not executed", reason=""):
+                return f"Command '{command}' {verb} on '{response.name}' (response flag '{ResponseFlag.Name(response.flag)}') {reason}"
+
+            if not response.HasField("data"):
+                return None
+
+            error_txt = ""
+            stack_txt = None
+
+            if response.data.Is(Stacktrace.DESCRIPTOR):
+                stack = unpack_any(response.data, Stacktrace)
+                dr.data = stack
+                # stack_txt = 'Stacktrace [bold red]on remote server![/bold red]\n' # Temporary - bold doesn't work
+                stack_txt = "Stacktrace on remote server!\n"
+                last_one = ""
+
+                for l in stack.text:
+                    stack_txt += l + "\n"
+                    if l != "":
+                        last_one = l
+                error_txt = last_one
+
+            elif response.data.Is(PlainText.DESCRIPTOR):
+                txt = unpack_any(response.data, PlainText)
+                error_txt = txt.text  # noqa: F841  (might need to revisit this)
+                dr.data = error_txt
 
             if response.flag in [
                 ResponseFlag.NOT_EXECUTED_NOT_IMPLEMENTED,
@@ -163,34 +196,8 @@ class GRPCDriver:
             ]:
                 self.log.warn(text())
             else:
-                self.log.error(text("failed"))
+                self.log.error(text("failed", error_txt))
 
-            if not response.HasField("data"):
-                return None
-
-            error_txt = ""
-            stack_txt = None
-
-            if response.data.Is(Stacktrace.DESCRIPTOR):
-                stack = unpack_any(response.data, Stacktrace)
-                # stack_txt = 'Stacktrace [bold red]on remote server![/bold red]\n' # Temporary - bold doesn't work
-                stack_txt = "Stacktrace on remote server!\n"
-                last_one = ""
-                for l in stack.text:
-                    stack_txt += l + "\n"
-                    if l != "":
-                        last_one = l
-                error_txt = last_one
-
-            elif response.data.Is(PlainText.DESCRIPTOR):
-                txt = unpack_any(response.data, PlainText)
-                error_txt = txt.text
-            self.log.error(error_txt)
-
-            if stack_txt:
-                self.log.debug(stack_txt)
-
-            dr.data = response.data
             for c_response in response.children:
                 try:
                     dr.children.append(
@@ -254,11 +261,11 @@ class ShellContext:
         self._drivers: Mapping[str, GRPCDriver] = self.create_drivers(**driver_args)
 
     def __init__(self, *args, **kwargs):
-        setup_root_logger("NOTSET")
+        log = get_logger("utils.ShellContext")
         try:
             self.reset(*args, **kwargs)
         except Exception as e:
-            print_traceback(e)
+            log.exception(e)
             exit(1)
 
     @abc.abstractmethod

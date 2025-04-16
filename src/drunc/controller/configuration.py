@@ -122,7 +122,7 @@ class ControllerConfHandler(ConfHandler):
                 session_name=session_name,
                 obj=app,
             )
-            self.log.info(f"commandline_parameters: {commandline_parameters}")
+
             new_node = ChildNode.get_child(
                 cli=commandline_parameters,
                 name=app.id,

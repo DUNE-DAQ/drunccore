@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from functools import partial
 
 import click
@@ -16,6 +17,7 @@ from rich.table import Table
 from drunc.exceptions import DruncSetupException, DruncShellException
 from drunc.utils.grpc_utils import pack_to_any, unpack_any
 from drunc.utils.shell_utils import DecodedResponse
+from drunc.utils.utils import get_logger
 
 
 def generate_none_status() -> Status:
@@ -38,6 +40,9 @@ def generate_none_description() -> Description:
 
 
 def check_message_type(message, expected_type: str) -> None:
+    if message is None:
+        return False
+
     if message.data is None:
         return False
 
@@ -46,21 +51,28 @@ def check_message_type(message, expected_type: str) -> None:
     return True
 
 
-def match_children(statuses: list, descriptions: list) -> dict:
-    children = {}
+def match_children(statuses: list, descriptions: list) -> defaultdict:
+    children = defaultdict(dict)
     for status in statuses:
-        children[status.name] = {"status": status}
+        children[status.name].update({"status": status})
 
     for description in descriptions:
         children[description.name].update({"description": description})
 
+    for child in children.values():
+        if "status" not in child:
+            child["status"] = None
+        if "description" not in child:
+            child["description"] = None
     return children
 
 
 def print_status_table(obj, status: DecodedResponse, description: DecodedResponse):
-    from rich.table import Table
-
-    t = Table(title=f"[dark_green]{description.data.session}[/dark_green] status")
+    t = Table(
+        title=f"[dark_green]{description.data.session}[/dark_green] status"
+        if description.data
+        else "[dark_green]status[/dark_green]"
+    )
     t.add_column("Name")
     t.add_column("Info")
     t.add_column("State")
@@ -73,22 +85,30 @@ def print_status_table(obj, status: DecodedResponse, description: DecodedRespons
         valid_description = check_message_type(description, "Description")
         valid_status = check_message_type(status, "Status")
 
+        if not valid_description or not valid_status:
+            return
+
+        NA = "[red]NA[/]"
         table.add_row(
-            prefix + status.name,
-            description.data.info if valid_description else "[red]unavailable[/]",
-            status.data.state if valid_status else "[red]unavailable[/]",
-            status.data.sub_state if valid_status else "[red]unavailable[/]",
+            prefix + status.name if valid_status else NA,
+            description.data.info if valid_description else NA,
+            status.data.state if valid_status else NA,
+            status.data.sub_state if valid_status else NA,
             format_bool(status.data.in_error, false_is_good=True)
             if valid_status
-            else "[red]unavailable[/]",
-            format_bool(status.data.included)
-            if valid_status
-            else "[red]unavailable[/]",
-            description.data.endpoint if valid_description else "[red]unavailable[/]",
+            else NA,
+            format_bool(status.data.included) if valid_status else NA,
+            description.data.endpoint if valid_description else NA,
         )
-        for child in match_children(status.children, description.children).values():
+
+        children = match_children(status.children, description.children)
+        children_list = sorted(list(children.keys()))
+        for child in children_list:
             add_status_to_table(
-                t, child["status"], child["description"], prefix=prefix + "  "
+                t,
+                children[child]["status"],
+                children[child]["description"],
+                prefix=prefix + "  ",
             )
 
     add_status_to_table(t, status, description, prefix="")
@@ -352,19 +372,54 @@ def validate_and_format_fsm_arguments(
     return out_dict
 
 
-def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
-    log = logging.getLogger("controller.shell_utils")
+def run_one_fsm_command(
+    controller_name,
+    transition_name,
+    obj,
+    target,
+    **kwargs,
+):
+    log = get_logger("controller.shell_utils")
     log.info(
-        f"Running transition '{transition_name}' on controller '{controller_name}'"
+        f"Running transition '{transition_name}' on controller '{controller_name}', targeting: '{target if target else controller_name}'"
     )
-    fsm_description = obj.get_driver("controller").describe_fsm().data
-    command_desc = search_fsm_command(transition_name, fsm_description.commands)
 
-    if command_desc is None:
-        log.error(
-            f'Command "{transition_name}" does not exist, or is not accessible right now'
+    execute_along_path = False
+    execute_on_all_subsequent_children_in_path = True
+
+    execute_on_root_controller = False
+    if target == "":
+        execute_on_root_controller = True
+    elif target == controller_name:
+        execute_on_root_controller = True
+    elif target == "/" + controller_name:
+        execute_on_root_controller = True
+
+    if execute_on_root_controller:
+        fsm_description = (
+            obj.get_driver("controller")
+            .describe_fsm(
+                target=controller_name,
+                execute_along_path=True,
+                execute_on_all_subsequent_children_in_path=False,
+            )
+            .data
         )
-        return
+
+        command_desc = search_fsm_command(transition_name, fsm_description.commands)
+
+        if command_desc is None:
+            log.error(
+                f'Command "{transition_name}" does not exist, or is not accessible right now'
+            )
+            return
+    else:
+
+        class DummyCommand:
+            pass
+
+        command_desc = DummyCommand()
+        command_desc.arguments = []
 
     try:
         formated_args = validate_and_format_fsm_arguments(
@@ -376,6 +431,9 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
         )
         result = obj.get_driver("controller").execute_fsm_command(
             arguments=data,
+            target=target,
+            execute_along_path=execute_along_path,
+            execute_on_all_subsequent_children_in_path=execute_on_all_subsequent_children_in_path,
         )
     except ArgumentException as ae:
         log.exception(
@@ -399,12 +457,14 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
         return "[dark_green]success[/]" if flag else "[red]failed[/]"
 
     def add_to_table(table, response, prefix=""):
+        executed_command = response.data is not None
+
         table.add_row(
             prefix + response.name,
             bool_to_success(response.flag, FSM=False),
             bool_to_success(response.data.flag, FSM=True)
-            if response.flag == FSMResponseFlag.FSM_EXECUTED_SUCCESSFULLY
-            else "[red]failed[/]",
+            if executed_command
+            else "[red]NA[/]",
         )
         for child_response in response.children:
             add_to_table(table, child_response, "  " + prefix)
@@ -420,6 +480,13 @@ def run_one_fsm_command(controller_name, transition_name, obj, **kwargs):
 def generate_fsm_command(ctx, transition: FSMCommandDescription, controller_name: str):
     cmd = partial(run_one_fsm_command, controller_name, transition.name)
     cmd = click.pass_obj(cmd)
+    cmd = click.option(
+        "--target",
+        type=str,
+        help="The target to address",
+        default="",
+    )(cmd)
+
     for argument in transition.arguments:
         atype = None
         if argument.type == Argument.Type.STRING:
@@ -464,6 +531,7 @@ def generate_fsm_command(ctx, transition: FSMCommandDescription, controller_name
             default=atype(default_value.value)
             if argument.presence != Argument.Presence.MANDATORY
             else None,
+            show_default=True,
             required=argument.presence == Argument.Presence.MANDATORY,
             help=argument.help,
         )(cmd)

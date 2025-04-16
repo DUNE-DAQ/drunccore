@@ -225,9 +225,11 @@ class FSM:
         return valid_transitions
 
     def get_transition(self, transition_name) -> bool:
+        self.log.debug(f'Searching for transition {transition_name}')
         transition = [t for t in self.transitions if t.name == transition_name]
+        self.log.debug(f'Found transition {transition}')
         if not transition:
-            fsme.NoTransitionOfName(transition_name)
+            raise fsme.NoTransitionOfName(transition_name)
         return transition[0]
 
     def can_execute_transition(self, source_state, transition) -> bool:
