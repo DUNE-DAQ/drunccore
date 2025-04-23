@@ -3,10 +3,11 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "drunc"
+name = "drunc-core"
 requires-python = ">=3.10,<3.11"
 dynamic = ["version", "readme"]
 dependencies = [
+    "drunc-messages",
     "click==8.1.7",
     "click-shell==2.1",
     "grpcio==1.68.0",
@@ -29,25 +30,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["ruff", "pre-commit", "pytest",]
 
-[project.scripts]
-fake_daq_application = "drunc.apps.__main_fake_daqapp_rest__:main"
-drunc-controller = "drunc.apps.__main_controller__:main"
-drunc-controller-shell = "drunc.apps.__main_controller_shell__:main"
-drunc-process-manager = "drunc.apps.__main_pm__:main"
-drunc-process-manager-shell = "drunc.apps.__main_pm_shell__:main"
-drunc-session-manager = "drunc.apps.__main_session_manager__:main"
-drunc-unified-shell = "drunc.apps.__main_unified_shell__:main"
-drunc-fsm-tests = "drunc.tests.__main_fsm__:main"
-application-registry-service = "drunc.apps.__main_app_connectivity_server__:main"
-drunc-ssh-validator = "drunc.apps.__main_ssh_validator__:main"
-drunc-ssh-doctor = "drunc.apps.__main_ssh_doctor__:main"
-
 [tool.setuptools.dynamic]
-version = {attr = "drunc.__version__"}
+version = {attr = "drunc_core.__version__"}
 readme = {file = ["docs/README.md"]}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-"drunc.data.process_manager" = ["*.json"]
