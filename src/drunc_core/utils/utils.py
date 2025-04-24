@@ -82,6 +82,9 @@ class LoggingFormatter(logging.Formatter):
 
 
 def setup_root_logger(log_level: str) -> logging.Logger:
+    if log_level is None:
+        log_level = os.getenv("DRUNC_LOG_LEVEL", "INFO")
+
     log_level = log_level.upper()
     if log_level not in log_levels.keys():
         raise DruncSetupException(
@@ -96,7 +99,7 @@ def setup_root_logger(log_level: str) -> logging.Logger:
     sh_command_level = log_level if log_level > logging.INFO else (log_level + 10)
     sh_command_logger = logging.getLogger(
         sh.__name__
-    )  # Not get_logger as the root logger is initially "UNSET" at context declaration
+    )  # Note: get_logger as the root logger is initially "UNSET" at context declaration
     sh_command_logger.setLevel(sh_command_level)
     for handler in sh_command_logger.handlers:
         handler.setLevel(sh_command_level)
@@ -113,17 +116,21 @@ def setup_root_logger(log_level: str) -> logging.Logger:
 
 
 def get_logger(logger_name: str, *args, **kwargs):
+    if not logging.getLogger("drunc").handlers:
+        setup_root_logger(None)
+        create_logger_handler(None, False)
+
     return logging.getLogger(f"drunc.{logger_name}")
 
 
 def create_logger_handler(log_file_path: str = None, rich_handler: bool = False):
-    function_logger = get_logger("utils.get_logger")
-    logger_level = logging.getLogger("drunc").level
-    if not logger_level:
-        setup_root_logger("INFO")
-        logger_level = logging.getLogger("drunc").level
-
     drunc_logger = logging.getLogger("drunc")
+    logger_level = drunc_logger.level
+
+    if not logger_level:
+        setup_root_logger(None)
+
+    function_logger = logging.getLogger("utils.get_logger")
     drunc_logger.handlers = []
 
     if log_file_path is not None:
