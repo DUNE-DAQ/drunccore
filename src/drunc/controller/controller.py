@@ -127,7 +127,11 @@ class Controller(ControllerServicer):
         if self.configuration.session.opmon_uri:
             opmon_path = self.configuration.session.opmon_uri.path
             opmon_type = self.configuration.session.opmon_uri.type
-            self.opmon_sleep_time = getattr(self.configuration.session.opmon_uri, "sleep_time", 10)
+            if hasattr(self.configuration.session.opmon_uri, "sleep_time"):
+                self.opmon_sleep_time = self.configuration.session.opmon_uri.sleep_time
+            else:
+                self.opmon_sleep_time = 10
+                self.log.info("Couldn't find sleep time in opmon_uri configuration, use default value of 10s")            
 
             self.log.info(f"OpMon path {opmon_path} and type {opmon_type} is enabled, sleep time {self.opmon_sleep_time}s")
 
@@ -321,7 +325,7 @@ class Controller(ControllerServicer):
                 self.log.debug(f"Publishing periodic FSM status every {sleep_time}s")
                 self.stateful_node.publish_state()
             except Exception as e:
-                self.log.warning(f"Error while publishing periodic FMS status: {e}")
+                self.log.warning(f"Error while publishing periodic FSM status: {e}")
             time.sleep(sleep_time)
 
     def construct_error_node_response(

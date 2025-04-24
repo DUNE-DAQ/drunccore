@@ -1,7 +1,7 @@
 import time
 import traceback
 
-from druncschema.controller_pb2 import FSMCommand
+from druncschema.controller_pb2 import AddressedCommand, FSMCommand
 from druncschema.generic_pb2 import Stacktrace
 from druncschema.opmon.FSM_pb2 import CommandTime
 from druncschema.request_response_pb2 import Response, ResponseFlag
@@ -73,10 +73,11 @@ def broadcasted(cmd):
         getattr(request,'data',None)
 
         if hasattr(obj, "opmon_publisher") and obj.opmon_publisher is not None:
-            if cmd.__name__ == 'execute_fsm_command':
-                if request.data is not None:
-                    fsm_command=FSMCommand()
-                    request.data.Unpack(fsm_command)
+            if cmd.__name__ == 'execute_fsm_command' and request.data is not None:
+                    addressed_command=AddressedCommand()
+                    request.data.Unpack(addressed_command)
+                    fsm_command = FSMCommand()
+                    addressed_command.command_data.Unpack(fsm_command)
                     custom_origin = {"Command": fsm_command.command_name}
             else:
                 custom_origin={"Command": cmd.__name__}
