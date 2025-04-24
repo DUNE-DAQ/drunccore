@@ -116,7 +116,7 @@ def setup_root_logger(log_level: str = None) -> logging.Logger:
 
 
 def get_logger(logger_name: str, *args, **kwargs):
-    if not logging.getLogger("drunc").handlers:
+    if not logging.getLogger("drunc").level:
         setup_root_logger(None)
         create_logger_handler(None, False)
 
