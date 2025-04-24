@@ -1,8 +1,11 @@
-from drunc_core.fsm.action_factory import FSMActionFactory
+from drunc_core.fsm.action_loader import load_entry_point_plugins
+from drunc_core.fsm.action_registry import create_action
 from drunc_core.fsm.core import PreOrPostTransitionSequence
 from drunc_core.fsm.transition import Transition
 from drunc_core.utils.configuration import ConfHandler
 from drunc_core.utils.utils import get_logger
+
+load_entry_point_plugins()
 
 
 class FSMConfHandler(ConfHandler):
@@ -45,9 +48,7 @@ class FSMConfHandler(ConfHandler):
 
         for action in self.data.actions:
             self.log.debug(f"Setting up action '{action.id}'")
-            self.actions[action.id] = FSMActionFactory.get().get_action(
-                action.id, action
-            )
+            self.actions[action.id] = create_action(action.id, action)
 
         for transition in self.data.transitions:
             tr = Transition(
