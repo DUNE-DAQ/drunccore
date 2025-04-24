@@ -81,7 +81,7 @@ class LoggingFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_root_logger(log_level: str) -> logging.Logger:
+def setup_root_logger(log_level: str = None) -> logging.Logger:
     if log_level is None:
         log_level = os.getenv("DRUNC_LOG_LEVEL", "INFO")
 
