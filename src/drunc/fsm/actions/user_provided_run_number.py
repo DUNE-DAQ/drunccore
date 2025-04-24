@@ -1,6 +1,8 @@
-from druncschema.opmon.generic_pb2 import RunInfo
 import time
-from drunc.fsm.actions.utils import validate_run_type, publish_runinfo
+
+from druncschema.opmon.generic_pb2 import RunInfo
+
+from drunc.fsm.actions.utils import publish_runinfo, validate_run_type
 from drunc.fsm.core import FSMAction
 
 

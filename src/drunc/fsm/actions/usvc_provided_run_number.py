@@ -1,8 +1,13 @@
-import requests
-from druncschema.opmon.generic_pb2 import RunInfo
 import time
 
-from drunc.fsm.actions.utils import get_dotdrunc_json, validate_run_type, publish_runinfo
+import requests
+from druncschema.opmon.generic_pb2 import RunInfo
+
+from drunc.fsm.actions.utils import (
+    get_dotdrunc_json,
+    publish_runinfo,
+    validate_run_type,
+)
 from drunc.fsm.core import FSMAction
 from drunc.fsm.exceptions import CannotGetRunNumber, DotDruncJsonIncorrectFormat
 from drunc.utils.utils import get_logger
