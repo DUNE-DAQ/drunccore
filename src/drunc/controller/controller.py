@@ -102,6 +102,7 @@ class Controller(ControllerServicer):
         self.name = name
         self.session = session
         self.broadcast_service = None
+        self.runinfo = None
 
         self.log = get_logger("controller")
         self.log.info(f"Initialising controller '{name}' with session '{session}'")
@@ -131,9 +132,13 @@ class Controller(ControllerServicer):
                 self.opmon_sleep_time = self.configuration.session.opmon_uri.sleep_time
             else:
                 self.opmon_sleep_time = 10
-                self.log.info("Couldn't find sleep time in opmon_uri configuration, use default value of 10s")            
+                self.log.info(
+                    "Couldn't find sleep time in opmon_uri configuration, use default value of 10s"
+                )
 
-            self.log.info(f"OpMon path {opmon_path} and type {opmon_type} is enabled, sleep time {self.opmon_sleep_time}s")
+            self.log.info(
+                f"OpMon path {opmon_path} and type {opmon_type} is enabled, sleep time {self.opmon_sleep_time}s"
+            )
 
             if "/" in opmon_path:
                 opmon_bootstrap, opmon_topic = opmon_path.split("/", 1)
@@ -148,20 +153,19 @@ class Controller(ControllerServicer):
 
         self.stateful_node = StatefulNode(
             fsm_configuration=fsmch,
-            publisher=self.opmon_publisher,
+            publisher=self.controllr_publisher,
             name=name,
             session=session,
         )
-        
+
         if self.opmon_publisher is not None:
             self.stop_event = threading.Event()
             self.thread = threading.Thread(
                 target=self.threading_publish_state,
                 args=(self.opmon_sleep_time,),
                 daemon=True,
-                )
+            )
             self.thread.start()
-      
 
         dach = DummyAuthoriserConfHandler(
             data=self.configuration.authoriser,
@@ -318,6 +322,29 @@ class Controller(ControllerServicer):
 
     def async_interrupt_with_exception(self, *args, **kwargs):
         return self.broadcast_service._async_interrupt_with_exception(*args, **kwargs)
+
+    def controllr_publisher(self, message, custom_origin: Optional[dict] = None):
+        if self.opmon_publisher is not None:
+            # if self.runinfo is not None:
+            #     message=RunInfo(
+            #         run_type=self.runinfo["production_vs_test"],
+            #         trigger_rate=self.runinfo["trigger_rate"]
+            #         run_number=self.runinfo["run"],
+            #         disable_data_storage=self.runinfo["disable_data_storage"],
+            #         )
+            try:
+                if custom_origin is None:
+                    custom_origin = {}
+
+                self.opmon_publisher.publish(
+                    session=self.session,
+                    application=self.name,
+                    message=message,
+                    custom_origin=custom_origin,
+                )
+                self.log.debug(f"Published {type(message)} to OpMon")
+            except Exception as e:
+                self.log.error(f"Failed to publish to OpMon: {e}")
 
     def threading_publish_state(self, sleep_time: float = 10.0):
         while not self.stop_event.is_set():
