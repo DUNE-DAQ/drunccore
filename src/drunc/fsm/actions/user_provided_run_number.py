@@ -1,3 +1,5 @@
+import time
+
 from drunc.fsm.actions.utils import validate_run_type
 from drunc.fsm.core import FSMAction
 
@@ -21,5 +23,7 @@ class UserProvidedRunNumber(FSMAction):
         _input_data["run"] = run_number
         _input_data["disable_data_storage"] = disable_data_storage
         _input_data["trigger_rate"] = trigger_rate
+
+        _input_data["run_time_at_start"] = time.time()
 
         return _input_data
