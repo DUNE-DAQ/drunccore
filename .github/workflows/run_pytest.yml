@@ -35,8 +35,8 @@ jobs:
           cd nightly/NFD_DEV* || true
           source env.sh
           python -m pip install --upgrade pip
-          git clone https://github.com/${{ github.repository_owner }}/druncschema.git -b ${{ github.head_ref }} ||  git clone https://github.com/DUNE-DAQ/druncschema.git
-          git clone https://github.com/${{ github.repository_owner }}/drunc.git -b ${{ github.head_ref }}
+          git clone https://github.com/${{ github.event.pull_request.head.headRepositoryOwner }}/druncschema.git -b ${{ github.head_ref }} ||  git clone https://github.com/DUNE-DAQ/druncschema.git
+          git clone https://github.com/${{ github.event.pull_request.head.headRepositoryOwner }}/drunc.git -b ${{ github.head_ref }}
           cd druncschema
           pip install .
           cd -
