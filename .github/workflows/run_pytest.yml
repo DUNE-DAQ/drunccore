@@ -18,9 +18,9 @@ jobs:
     steps:
       - name: Check URLs
         run: |
-          echo https://github.com/${{ github.event.pull_request.head.repo.owner }}/druncschema.git
-          echo https://github.com/${{ github.event.pull_request.head.repo.owner }}/drunc.git
-          
+          echo https://github.com/${{ github.event.pull_request.head.repo.owner.login }}/druncschema.git
+          echo https://github.com/${{ github.event.pull_request.head.repo.owner.login }}/drunc.git
+
       - name: Set up dev nightly
         if: ${{ !cancelled() }}
         run: |
@@ -40,8 +40,8 @@ jobs:
           cd nightly/NFD_DEV* || true
           source env.sh
           python -m pip install --upgrade pip
-          git clone https://github.com/${{ github.event.pull_request.head.repo.owner }}/druncschema.git -b ${{ github.head_ref }} ||  git clone https://github.com/DUNE-DAQ/druncschema.git
-          git clone https://github.com/${{ github.event.pull_request.head.repo.owner }}/drunc.git -b ${{ github.head_ref }}
+          git clone https://github.com/${{ github.event.pull_request.head.repo.owner.login }}/druncschema.git -b ${{ github.head_ref }} ||  git clone https://github.com/DUNE-DAQ/druncschema.git
+          git clone https://github.com/${{ github.event.pull_request.head.repo.owner.login }}/drunc.git -b ${{ github.head_ref }}
           cd druncschema
           pip install .
           cd -
