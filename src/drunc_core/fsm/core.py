@@ -19,6 +19,7 @@ from typing import List
 
 from drunc_messages.controller_pb2 import Argument
 from drunc_messages.generic_pb2 import bool_msg, float_msg, int_msg, string_msg
+from drunc_messages.opmon.generic_pb2 import RunInfo
 
 import drunc_core.fsm.exceptions as fsme
 from drunc_core.exceptions import DruncException, DruncSetupException
@@ -80,6 +81,20 @@ class PreOrPostTransitionSequence:
                     _input_data=input_data, _context=ctx, **transition_args
                 )
                 self.log.debug(f"data after callback: {input_data}")
+                if input_data is not None:
+                    ctx.runinfo = input_data
+                    if callback.method.__name__ == "start":
+                        ctx.controller_publisher(
+                            message=RunInfo(
+                                run_type=input_data["production_vs_test"],
+                                trigger_rate=input_data["trigger_rate"],
+                                run_number=input_data["run"],
+                                disable_data_storage=input_data["disable_data_storage"],
+                                run_time_at_start=input_data["run_time_at_start"],
+                                run_time_since_start=0,
+                            )
+                        )
+
                 try:
                     json.dumps(input_data)
                 except TypeError:
